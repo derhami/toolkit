@@ -1,0 +1,42 @@
+{
+  "name": "virastar",
+  "version": "0.21.0",
+  "description": "Cleaning-up Persian Texts!",
+  "author": {
+    "name": "juvee"
+  },
+  "keywords": [
+    "persian",
+    "text"
+  ],
+  "main": "./lib/virastar.js",
+  "files": [
+    "/lib",
+    "settings.json"
+  ],
+  "scripts": {
+    "serve": "npx http-server ./demo -c-1",
+    "test": "mocha --require @babel/register"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "@babel/register": "^7.9.0",
+    "mocha": "^7.1.2",
+    "semistandard": "^14.2.0",
+    "sprintf-js": "^1.1.2",
+    "stylelint": "^13.3.3"
+  },
+  "semistandard": {
+    "ignore": [
+      "/dist",
+      "*.min.js"
+    ],
+    "globals": [
+      "define",
+      "describe",
+      "it"
+    ]
+  }
+}

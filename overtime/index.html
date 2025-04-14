@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>محاسبه اضافه‌کاری</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> <!-- Font Awesome CDN -->
+  <style>
+    /* استایل‌های پایه */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Vazirmatn', sans-serif;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f5f5f7;
+      direction: rtl;
+    }
+    .container {
+      max-width: 700px;
+      width: 100%;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      display: grid;
+      gap: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #007aff;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 8px;
+      background: #007aff;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    button i {
+      font-size: 1.2em;
+    }
+    button:hover {
+      background: #005bb5;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      display: none;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    th {
+      background: #007aff;
+      color: white;
+    }
+    .delete-row {
+      color: red;
+      cursor: pointer;
+    }
+    .delete-all {
+      color: #ffffff;
+      cursor: pointer;
+    }
+    .error {
+      color: red;
+      font-size: 0.9em;
+      margin-bottom: 10px;
+    }
+    /* استایل‌های رسپانسیو */
+    @media (max-width: 668px) {
+      .container {
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.5em;
+      }
+      button {
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>محاسبه اضافه‌کاری</h1>
+    <div id="error-message" class="error"></div> <!-- پیغام خطا -->
+    <label for="start-time">ساعت ورود:</label>
+    <input type="time" id="start-time" onchange="autoCalculateEndTime()">
+    <label for="end-time">ساعت خروج:</label>
+    <input type="time" id="end-time">
+    <label for="work-hours">ساعت کاری استاندارد:</label>
+    <input type="time" id="work-hours" value="08:30">
+    
+    <div class="buttons">
+      <button onclick="calculate()"><i class="fas fa-calculator"></i> محاسبه</button>
+      <button onclick="saveData()"><i class="fas fa-save"></i> ذخیره</button>
+      <button onclick="clearAll()" class="delete-all"><i class="fas fa-trash-alt"></i> حذف همه</button>
+    </div>
+    
+    <div id="result"></div>
+
+    <table id="saved-data">
+      <thead>
+        <tr>
+          <th>ساعت ورود</th>
+          <th>ساعت خروج</th>
+          <th>وضعیت</th>
+          <th>زمان ثبت</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", loadData);
+
+    // تابع برای تبدیل اعداد فارسی به انگلیسی
+    function convertToEnglishNumerals(str) {
+      const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+      const englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      return str.replace(/[۰-۹]/g, (match) => englishNumbers[persianNumbers.indexOf(match)]);
+    }
+
+    function autoCalculateEndTime() {
+      const startTime = document.getElementById("start-time").value;
+      const workHours = document.getElementById("work-hours").value;
+      if (startTime && workHours) {
+        const startMinutes = timeToMinutes(startTime);
+        const workMinutes = timeToMinutes(workHours);
+        const endMinutes = startMinutes + workMinutes;
+        document.getElementById("end-time").value = minutesToTime(endMinutes);
+      }
+    }
+
+    function calculate() {
+      const startTime = convertToEnglishNumerals(document.getElementById("start-time").value);
+      const endTime = convertToEnglishNumerals(document.getElementById("end-time").value);
+      const workHours = convertToEnglishNumerals(document.getElementById("work-hours").value);
+      const resultDiv = document.getElementById("result");
+      const errorMessage = document.getElementById("error-message");
+
+      // بررسی وارد شدن ساعت‌ها
+      if (!startTime || !endTime || !workHours) {
+        errorMessage.textContent = "لطفاً تمام فیلدها را پر کنید.";
+        resultDiv.innerHTML = "";
+        return;
+      }
+      errorMessage.textContent = "";  // پاک کردن پیغام خطا
+
+      const startMinutes = timeToMinutes(startTime);
+      const endMinutes = timeToMinutes(endTime);
+      const workMinutes = timeToMinutes(workHours);
+      const actualMinutes = endMinutes - startMinutes;
+      
+      if (actualMinutes > workMinutes) {
+        const overtimeMinutes = actualMinutes - workMinutes;
+        resultDiv.innerHTML = `اضافه‌کاری: ${Math.floor(overtimeMinutes / 60)} ساعت و ${overtimeMinutes % 60} دقیقه.`;
+      } else {
+        const underTime = workMinutes - actualMinutes;
+        resultDiv.innerHTML = `کم‌کاری: ${Math.floor(underTime / 60)} ساعت و ${underTime % 60} دقیقه.`;
+      }
+    }
+
+    function saveData() {
+      const startTime = convertToEnglishNumerals(document.getElementById("start-time").value);
+      const endTime = convertToEnglishNumerals(document.getElementById("end-time").value);
+      const result = document.getElementById("result").innerText;
+      const timestamp = new Date().toLocaleString("fa-IR");
+      const errorMessage = document.getElementById("error-message");
+
+      if (!startTime || !endTime || !result) {
+        errorMessage.textContent = "لطفاً تمام فیلدها را پر کنید.";
+        return;
+      }
+
+      const data = { startTime, endTime, result, timestamp };
+      let savedData = JSON.parse(localStorage.getItem("overtimeData")) || [];
+      savedData.push(data);
+      localStorage.setItem("overtimeData", JSON.stringify(savedData));
+      appendRow(data);
+
+      // ریست کردن فرم
+      document.getElementById("start-time").value = "";
+      document.getElementById("end-time").value = "";
+      document.getElementById("result").innerHTML = "";
+    }
+
+    function loadData() {
+      const savedData = JSON.parse(localStorage.getItem("overtimeData")) || [];
+      savedData.forEach(data => appendRow(data));
+    }
+
+    function appendRow(data) {
+      const tableBody = document.querySelector("#saved-data tbody");
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td>${data.startTime}</td>
+        <td>${data.endTime}</td>
+        <td>${data.result}</td>
+        <td>${data.timestamp}</td>
+        <td><button class="delete-row" onclick="deleteRow(this)">حذف</button></td>
+      `;
+
+      tableBody.appendChild(row);
+      document.getElementById("saved-data").style.display = "table";
+    }
+
+    function deleteRow(button) {
+      const row = button.closest("tr");
+      const startTime = row.cells[0].textContent;
+      let savedData = JSON.parse(localStorage.getItem("overtimeData"));
+      savedData = savedData.filter(data => data.startTime !== startTime);
+      localStorage.setItem("overtimeData", JSON.stringify(savedData));
+      row.remove();
+    }
+
+    function clearAll() {
+      localStorage.removeItem("overtimeData");
+      document.querySelector("#saved-data tbody").innerHTML = "";
+      document.getElementById("saved-data").style.display = "none";
+    }
+
+    function timeToMinutes(time) {
+      const [hours, minutes] = time.split(":").map(Number);
+      return hours * 60 + minutes;
+    }
+
+    function minutesToTime(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+  </script>
+</body>
+</html>

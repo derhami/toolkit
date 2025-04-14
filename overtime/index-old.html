@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>محاسبه اضافه‌کاری</title>
+
+  <!-- لینک بارگذاری فونت Vazirmatn از گوگل فونت -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap">
+
+  <!-- لینک به فیوآیکن -->
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <style>
+    /* سبک کلی و طراحی مینیمال */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f5f5f7;
+      color: #333;
+      direction: rtl;
+    }
+
+    .container {
+      max-width: 400px;
+      width: 100%;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      color: #007aff;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9em;
+      margin-top: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      font-size: 1em;
+      background-color: #007aff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      margin-top: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #005bb5;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #333;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      font-size: 0.9em;
+    }
+
+    th {
+      background-color: #007aff;
+      color: white;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>محاسبه اضافه‌کاری</h1>
+    
+    <label for="start-time">ساعت ورود</label>
+    <input type="time" id="start-time" required onchange="calculateEndTime()">
+
+    <label for="end-time">ساعت خروج</label>
+    <input type="time" id="end-time" required onchange="calculateOvertime()">
+
+    <label for="work-duration">مقدار ساعت کاری</label>
+    <input type="time" id="work-duration" value="08:45" required>
+
+    <button onclick="calculateOvertime()">محاسبه اضافه‌کاری</button>
+    
+    <div class="result" id="result">
+      <!-- اطلاعات خروج و اضافه‌کاری در اینجا نمایش داده می‌شود -->
+    </div>
+  </div>
+
+  <script>
+    function calculateEndTime() {
+      const startTime = document.getElementById("start-time").value;
+      const workDuration = document.getElementById("work-duration").value;
+      const result = document.getElementById("result");
+
+      if (startTime && workDuration) {
+        const startMinutes = convertToMinutes(startTime);
+        const workMinutes = convertToMinutes(workDuration);
+        const endMinutes = startMinutes + workMinutes;
+        const calculatedEndTime = convertToTimeFormat(endMinutes);
+        
+        result.innerHTML = `
+          <table>
+            <tr><th>زمان محاسبه‌شده خروج</th></tr>
+            <tr><td>${calculatedEndTime}</td></tr>
+          </table>
+        `;
+      }
+    }
+
+    function calculateOvertime() {
+      const startTime = document.getElementById("start-time").value;
+      const endTime = document.getElementById("end-time").value;
+      const workDuration = document.getElementById("work-duration").value;
+      const result = document.getElementById("result");
+
+      if (!startTime || !endTime || !workDuration) {
+        result.innerHTML = "<p>لطفاً تمام فیلدها را وارد کنید.</p>";
+        return;
+      }
+
+      const startMinutes = convertToMinutes(startTime);
+      const endMinutes = convertToMinutes(endTime);
+      const regularWorkMinutes = convertToMinutes(workDuration);
+      const workMinutes = endMinutes - startMinutes;
+
+      if (workMinutes > regularWorkMinutes) {
+        const overtimeMinutes = workMinutes - regularWorkMinutes;
+        const overtimeStart = startMinutes + regularWorkMinutes;
+        
+        const hours = Math.floor(overtimeMinutes / 60);
+        const minutes = overtimeMinutes % 60;
+
+        result.innerHTML = `
+          <table>
+            <tr><th>اضافه‌کاری</th><th>ساعات ثبت اضافه‌کاری</th></tr>
+            <tr>
+              <td>${hours} ساعت و ${minutes} دقیقه</td>
+              <td>از ${convertToTimeFormat(overtimeStart)} تا ${endTime}</td>
+            </tr>
+          </table>
+        `;
+      } else {
+        result.innerHTML = `
+          <table>
+            <tr><th>وضعیت اضافه‌کاری</th></tr>
+            <tr><td>اضافه‌کاری وجود ندارد.</td></tr>
+          </table>
+        `;
+      }
+    }
+
+    function convertToMinutes(time) {
+      const [hours, minutes] = time.split(":").map(Number);
+      return hours * 60 + minutes;
+    }
+
+    function convertToTimeFormat(minutes) {
+      const hours = Math.floor(minutes / 60).toString().padStart(2, '0');
+      const mins = (minutes % 60).toString().padStart(2, '0');
+      return `${hours}:${mins}`;
+    }
+  </script>
+</body>
+</html>
