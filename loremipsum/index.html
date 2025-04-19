@@ -1,0 +1,237 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مولد متن لورم ایپسوم چندزبانه</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://v1.fontapi.ir/css/Vazir" rel="stylesheet">
+  <style>
+    body { font-family: 'Vazir', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl">
+    <h1 class="text-2xl font-bold text-center mb-4">مولد متن لورم ایپسوم چندزبانه</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label for="language" class="block text-sm font-medium text-gray-700">انتخاب زبان:</label>
+        <select id="language" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-right bg-white">
+          <option value="latin">لاتین</option>
+          <option value="persian" selected>فارسی</option>
+          <option value="arabic">عربی</option>
+          <option value="english">انگلیسی</option>
+          <option value="french">فرانسوی</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="quantity" class="block text-sm font-medium text-gray-700">تعداد:</label>
+        <input type="number" id="quantity" min="1" value="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-right bg-white">
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700">نوع خروجی:</label>
+      <div class="mt-2 flex space-x-4 space-x-reverse">
+        <label class="inline-flex items-center">
+          <input type="radio" name="outputType" value="paragraphs" checked class="form-radio text-indigo-600">
+          <span class="mr-2">پاراگراف</span>
+        </label>
+        <label class="inline-flex items-center">
+          <input type="radio" name="outputType" value="words" class="form-radio text-indigo-600">
+          <span class="mr-2">کلمه</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700">طول پاراگراف:</label>
+      <div class="mt-2 flex space-x-4 space-x-reverse">
+        <label class="inline-flex items-center">
+          <input type="radio" name="length" value="short" checked class="form-radio text-indigo-600">
+          <span class="mr-2">کوتاه</span>
+        </label>
+        <label class="inline-flex items-center">
+          <input type="radio" name="length" value="medium" class="form-radio text-indigo-600">
+          <span class="mr-2">متوسط</span>
+        </label>
+        <label class="inline-flex items-center">
+          <input type="radio" name="length" value="long" class="form-radio text-indigo-600">
+          <span class="mr-2">بلند</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="inline-flex items-center">
+        <input type="checkbox" id="randomize" class="form-checkbox text-indigo-600">
+        <span class="mr-2">متن تصادفی</span>
+      </label>
+    </div>
+
+    <button id="generate" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">تولید متن</button>
+
+    <div id="output" class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200 min-h-[200px] overflow-auto text-gray-800"></div>
+
+    <div class="mt-4 flex space-x-4 space-x-reverse">
+      <button id="copy" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 hidden">کپی به کلیپ‌بورد</button>
+      <button id="download" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 hidden">دانلود به صورت فایل</button>
+    </div>
+
+    <div id="stats" class="mt-4 text-sm text-gray-600"></div>
+  </div>
+
+  <script>
+    const loremTexts = {
+      latin: {
+        short: `Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
+        medium: `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`,
+        long: `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.`
+      },
+      persian: {
+        short: `لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ.`,
+        medium: `لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ و با استفاده از طراحان گرافیک است. چاپگرها و متون بلکه روزنامه و مجله در ستون و سطرآنچنان که لازم است.`,
+        long: `لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ و با استفاده از طراحان گرافیک است. چاپگرها و متون بلکه روزنامه و مجله در ستون و سطرآنچنان که لازم است و برای شرایط فعلی تکنولوژی مورد نیاز و کاربردهای متنوع با هدف بهبود ابزارهای کاربردی می باشد.`
+      },
+      arabic: {
+        short: `لوريم إيبسوم هو نص وهمي يستخدم في صناعة الطباعة.`,
+        medium: `لوريم إيبسوم هو نص وهمي يستخدم في صناعة الطباعة والتصميم. يتم استخدامه من قبل المصممين لملء الفراغات في التصميمات.`,
+        long: `لوريم إيبسوم هو نص وهمي يستخدم في صناعة الطباعة والتصميم. يتم استخدامه من قبل المصممين لملء الفراغات في التصميمات لإظهار الشكل البصري دون التركيز على المحتوى. النصوص العربية المستخدمة هنا تحاكي التوزيع الطبيعي للحروف والكلمات.`
+      },
+      english: {
+        short: `This is a dummy text used as a placeholder.`,
+        medium: `This is a dummy text used as a placeholder in the publishing and design industry. It has a more or less normal distribution of letters.`,
+        long: `This is a dummy text used as a placeholder in the publishing and design industry. It has a more or less normal distribution of letters, as opposed to using 'Content here主播, as opposed to using 'Content here, content here', making it look like readable English.`
+      },
+      french: {
+        short: `Ceci est un texte fictif utilisé comme espace réservé.`,
+        medium: `Ceci est un texte fictif utilisé comme espace réservé dans l'industrie de l'édition et du design.`,
+        long: `Ceci est un texte fictif utilisé comme espace réservé dans l'industrie de l'édition et du design. Il a une distribution plus ou moins normale des lettres, par opposition à l'utilisation de 'Contenu ici, contenu ici', ce qui le rend semblable à du français lisible.`
+      }
+    };
+
+    const generateBtn = document.getElementById('generate');
+    const copyBtn = document.getElementById('copy');
+    const downloadBtn = document.getElementById('download');
+    const outputDiv = document.getElementById('output');
+    const statsDiv = document.getElementById('stats');
+    const languageSelect = document.getElementById('language');
+    const quantityInput = document.getElementById('quantity');
+    const outputTypeRadios = document.getElementsByName('outputType');
+    const lengthRadios = document.getElementsByName('length');
+    const randomizeCheckbox = document.getElementById('randomize');
+
+    // Text Generation
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function generateStats(text) {
+      const paragraphs = text.split('\n\n').length;
+      const words = text.split(/\s+/).length;
+      const chars = text.length;
+      return `پاراگراف‌ها: ${paragraphs} | کلمات: ${words} | کاراکترها: ${chars}`;
+    }
+
+    generateBtn.addEventListener('click', () => {
+      const language = languageSelect.value;
+      const quantity = parseInt(quantityInput.value) || 3;
+      const outputType = Array.from(outputTypeRadios).find(r => r.checked).value;
+      const length = Array.from(lengthRadios).find(r => r.checked).value;
+      const randomize = randomizeCheckbox.checked;
+
+      let generatedText = '';
+      let baseText = loremTexts[language][length];
+
+      if (randomize) {
+        const words = baseText.split(' ');
+        baseText = shuffleArray(words).join(' ');
+      }
+
+      if (outputType === 'paragraphs') {
+        for (let i = 0; i < quantity; i++) {
+          generatedText += `<p class="${language === 'persian' || language === 'arabic' ? 'text-right' : 'text-left'} mb-4">${baseText}</p>`;
+        }
+      } else {
+        const words = baseText.split(' ');
+        const selectedWords = [];
+        for (let i = 0; i < quantity; i++) {
+          selectedWords.push(words[i % words.length]);
+        }
+        generatedText = `<p class="${language === 'persian' || language === 'arabic' ? 'text-right' : 'text-left'} mb-4">${selectedWords.join(' ')}</p>`;
+      }
+
+      outputDiv.innerHTML = generatedText;
+      statsDiv.textContent = generateStats(outputDiv.innerText);
+      copyBtn.classList.remove('hidden');
+      downloadBtn.classList.remove('hidden');
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const text = outputDiv.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = 'کپی شد!';
+        setTimeout(() => {
+          copyBtn.textContent = 'کپی به کلیپ‌بورد';
+        }, 2000);
+      });
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const text = outputDiv.innerText;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lorem-ipsum.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
