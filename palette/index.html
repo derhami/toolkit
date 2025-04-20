@@ -1,0 +1,441 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مولد پالت رنگی پیشرفته</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://v1.fontapi.ir/css/Vazir" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Vazir', sans-serif;
+      background: linear-gradient(135deg, #6b7280, #1e3a8a);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .neumorphic {
+      background: #e5e7eb;
+      border-radius: 1rem;
+      box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.5);
+      padding: 1.5rem;
+    }
+    .color-swatch {
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .color-swatch:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    #toast {
+      transition: opacity 0.3s;
+      opacity: 0;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+    #toast.show { opacity: 1; }
+    #preview { transition: all 0.3s; }
+  </style>
+</head>
+<body>
+  <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-4xl neumorphic">
+    <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">مولد پالت رنگی پیشرفته</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div>
+        <label for="baseColor" class="block text-sm font-medium text-gray-700">رنگ پایه:</label>
+        <div class="flex items-center gap-2">
+          <input type="color" id="baseColor" value="#3B82F6" class="h-10 w-16 rounded-md border-gray-300">
+          <input type="text" id="baseHex" value="#3B82F6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-right" placeholder="Hex کد رنگ">
+        </div>
+      </div>
+      <div>
+        <label for="harmony" class="block text-sm font-medium text-gray-700">حالت هارمونی:</label>
+        <select id="harmony" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-right">
+          <option value="complementary">مکمل</option>
+          <option value="analogous">مشابه</option>
+          <option value="triadic">سه‌گانه</option>
+          <option value="monochromatic" selected>تک‌رنگ</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <label for="history" class="block text-sm font-medium text-gray-700">تاریخچه پالت‌ها:</label>
+      <select id="history" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-right">
+        <option value="">انتخاب از تاریخچه</option>
+      </select>
+    </div>
+
+    <div class="flex space-x-4 space-x-reverse mb-6">
+      <button id="generate" class="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">تولید پالت</button>
+      <button id="random" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">پالت تصادفی</button>
+    </div>
+
+    <div id="palette" class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6"></div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div>
+        <label for="exportFormat" class="block text-sm font-medium text-gray-700">فرمت خروجی:</label>
+        <select id="exportFormat" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-right">
+          <option value="png">PNG</option>
+          <option value="svg">SVG</option>
+          <option value="json">JSON</option>
+          <option value="css">CSS</option>
+        </select>
+      </div>
+      <div class="flex space-x-4 space-x-reverse">
+        <button id="copy" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50">کپی خروجی</button>
+        <button id="download" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">دانلود</button>
+      </div>
+    </div>
+
+    <div id="preview" class="p-4 rounded-lg bg-gray-100">
+      <h2 class="text-lg font-semibold mb-4">پیش‌نمایش UI</h2>
+      <div class="flex flex-col gap-4">
+        <button class="py-2 px-4 rounded-md text-white" style="background-color: #3B82F6;">دکمه نمونه</button>
+        <div class="p-4 rounded-md" style="background-color: #93C5FD;">کارت نمونه</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-4 text-center text-sm text-gray-200">
+    طراحی شده توسط <a href="https://hawid.ir" target="_blank" class="underline hover:text-indigo-300">حمیدرضا درهمی</a>
+  </footer>
+
+  <div id="toast" class="bg-gray-800 text-white py-2 px-4 rounded-md shadow-lg"></div>
+
+  <script>
+    window.onload = () => {
+      const generateBtn = document.getElementById('generate');
+      const randomBtn = document.getElementById('random');
+      const copyBtn = document.getElementById('copy');
+      const downloadBtn = document.getElementById('download');
+      const paletteDiv = document.getElementById('palette');
+      const baseColor = document.getElementById('baseColor');
+      const baseHex = document.getElementById('baseHex');
+      const harmony = document.getElementById('harmony');
+      const exportFormat = document.getElementById('exportFormat');
+      const history = document.getElementById('history');
+      const preview = document.getElementById('preview');
+      const toast = document.getElementById('toast');
+
+      let currentPalette = [];
+
+      // Load history from localStorage
+      let paletteHistory = JSON.parse(localStorage.getItem('paletteHistory')) || [];
+      function updateHistory() {
+        history.innerHTML = '<option value="">انتخاب از تاریخچه</option>';
+        paletteHistory.forEach((palette, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = palette.map(c => c.hex).join(', ');
+          history.appendChild(option);
+        });
+      }
+      updateHistory();
+
+      history.addEventListener('change', () => {
+        if (history.value !== '') {
+          currentPalette = paletteHistory[history.value];
+          renderPalette();
+        }
+      });
+
+      // Show toast notification
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+
+      // Hex to RGB conversion
+      function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b };
+      }
+
+      // RGB to HSL conversion
+      function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        if (max === min) {
+          h = s = 0;
+        } else {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+          }
+          h /= 6;
+        }
+        return { h: h * 360, s: s * 100, l: l * 100 };
+      }
+
+      // HSL to RGB conversion
+      function hslToRgb(h, s, l) {
+        s /= 100; l /= 100;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r, g, b;
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+        return {
+          r: Math.round((r + m) * 255),
+          g: Math.round((g + m) * 255),
+          b: Math.round((b + m) * 255)
+        };
+      }
+
+      // RGB to Hex conversion
+      function rgbToHex(r, g, b) {
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+      }
+
+      // Generate color palette based on harmony
+      function generatePalette(baseHex, harmonyMode) {
+        const rgb = hexToRgb(baseHex);
+        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        const palette = [{ hex: baseHex, rgb, hsl }];
+
+        if (harmonyMode === 'complementary') {
+          const compHsl = { ...hsl, h: (hsl.h + 180) % 360 };
+          const compRgb = hslToRgb(compHsl.h, compHsl.s, compHsl.l);
+          palette.push({ hex: rgbToHex(compRgb.r, compRgb.g, compRgb.b), rgb: compRgb, hsl: compHsl });
+        } else if (harmonyMode === 'analogous') {
+          [-30, 30].forEach(offset => {
+            const anaHsl = { ...hsl, h: (hsl.h + offset + 360) % 360 };
+            const anaRgb = hslToRgb(anaHsl.h, anaHsl.s, anaHsl.l);
+            palette.push({ hex: rgbToHex(anaRgb.r, anaRgb.g, anaRgb.b), rgb: anaRgb, hsl: anaHsl });
+          });
+        } else if (harmonyMode === 'triadic') {
+          [120, 240].forEach(offset => {
+            const triHsl = { ...hsl, h: (hsl.h + offset) % 360 };
+            const triRgb = hslToRgb(triHsl.h, triHsl.s, triHsl.l);
+            palette.push({ hex: rgbToHex(triRgb.r, triRgb.g, triRgb.b), rgb: triRgb, hsl: triHsl });
+          });
+        } else if (harmonyMode === 'monochromatic') {
+          [0.8, 0.6, 0.4, 0.2].forEach(lFactor => {
+            const monoHsl = { ...hsl, l: hsl.l * lFactor };
+            const monoRgb = hslToRgb(monoHsl.h, monoHsl.s, monoHsl.l);
+            palette.push({ hex: rgbToHex(monoRgb.r, monoRgb.g, monoRgb.b), rgb: monoRgb, hsl: monoHsl });
+          });
+        }
+
+        return palette.slice(0, 5); // Limit to 5 colors
+      }
+
+      // Generate random color
+      function randomColor() {
+        const r = Math.floor(Math.random() * 256);
+        const g = Math.floor(Math.random() * 256);
+        const b = Math.floor(Math.random() * 256);
+        return rgbToHex(r, g, b);
+      }
+
+      // Render palette
+      function renderPalette() {
+        paletteDiv.innerHTML = '';
+        currentPalette.forEach(color => {
+          const swatch = document.createElement('div');
+          swatch.className = 'color-swatch p-4 rounded-lg text-center text-white cursor-pointer';
+          swatch.style.backgroundColor = color.hex;
+          swatch.innerHTML = `
+            <div class="font-bold">${color.hex}</div>
+            <div>RGB: ${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}</div>
+            <div>HSL: ${Math.round(color.hsl.h)}°, ${Math.round(color.hsl.s)}%, ${Math.round(color.hsl.l)}%</div>
+          `;
+          swatch.addEventListener('click', () => {
+            navigator.clipboard.writeText(color.hex).then(() => {
+              showToast(`رنگ ${color.hex} کپی شد!`);
+            });
+          });
+          paletteDiv.appendChild(swatch);
+        });
+
+        // Update preview
+        preview.querySelector('button').style.backgroundColor = currentPalette[0]?.hex || '#3B82F6';
+        preview.querySelector('div').style.backgroundColor = currentPalette[1]?.hex || '#93C5FD';
+      }
+
+      // Sync color inputs
+      baseColor.addEventListener('input', () => {
+        baseHex.value = baseColor.value.toUpperCase();
+        generatePaletteAndSave();
+      });
+      baseHex.addEventListener('input', () => {
+        if (/^#[0-9A-F]{6}$/i.test(baseHex.value)) {
+          baseColor.value = baseHex.value;
+          generatePaletteAndSave();
+        }
+      });
+
+      // Generate and save palette
+      function generatePaletteAndSave(random = false) {
+        const hex = random ? randomColor() : baseHex.value;
+        if (random) {
+          baseHex.value = hex;
+          baseColor.value = hex;
+        }
+        currentPalette = generatePalette(hex, harmony.value);
+        paletteHistory.unshift(currentPalette);
+        if (paletteHistory.length > 10) paletteHistory.pop();
+        localStorage.setItem('paletteHistory', JSON.stringify(paletteHistory));
+        updateHistory();
+        renderPalette();
+      }
+
+      generateBtn.addEventListener('click', () => generatePaletteAndSave());
+      randomBtn.addEventListener('click', () => generatePaletteAndSave(true));
+
+      // Export palette
+      function exportPalette(format) {
+        if (!currentPalette.length) {
+          showToast('ابتدا یک پالت تولید کنید!');
+          return null;
+        }
+
+        if (format === 'png') {
+          const canvas = document.createElement('canvas');
+          canvas.width = 500;
+          canvas.height = 100;
+          const ctx = canvas.getContext('2d');
+          const swatchWidth = canvas.width / currentPalette.length;
+          currentPalette.forEach((color, i) => {
+            ctx.fillStyle = color.hex;
+            ctx.fillRect(i * swatchWidth, 0, swatchWidth, canvas.height);
+          });
+          return canvas.toDataURL('image/png');
+        } else if (format === 'svg') {
+          let svg = `<svg width="500" height="100" xmlns="http://www.w3.org/2000/svg">`;
+          const swatchWidth = 500 / currentPalette.length;
+          currentPalette.forEach((color, i) => {
+            svg += `<rect x="${i * swatchWidth}" y="0" width="${swatchWidth}" height="100" fill="${color.hex}"/>`;
+          });
+          svg += '</svg>';
+          return svg;
+        } else if (format === 'json') {
+          return JSON.stringify(currentPalette.map(c => ({
+            hex: c.hex,
+            rgb: c.rgb,
+            hsl: c.hsl
+          })), null, 2);
+        } else if (format === 'css') {
+          let css = ':root {\n';
+          currentPalette.forEach((c, i) => {
+            css += `  --color-${i + 1}: ${c.hex};\n`;
+          });
+          css += '}';
+          return css;
+        }
+      }
+
+      copyBtn.addEventListener('click', () => {
+        const format = exportFormat.value;
+        const output = exportPalette(format);
+        if (output) {
+          if (format === 'png') {
+            fetch(output)
+              .then(res => res.blob())
+              .then(blob => {
+                const item = new ClipboardItem({ 'image/png': blob });
+                navigator.clipboard.writeImage(item).then(() => {
+                  showToast('تصویر پالت کپی شد!');
+                }).catch(() => showToast('خطا در کپی تصویر!'));
+              });
+          } else {
+            navigator.clipboard.writeText(output).then(() => {
+              showToast(`${format.toUpperCase()} پالت کپی شد!`);
+            }).catch(() => showToast('خطا در کپی متن!'));
+          }
+        }
+      });
+
+      downloadBtn.addEventListener('click', () => {
+        const format = exportFormat.value;
+        const output = exportPalette(format);
+        if (output) {
+          const link = document.createElement('a');
+          if (format === 'png') {
+            link.href = output;
+            link.download = 'palette.png';
+          } else if (format === 'svg') {
+            const blob = new Blob([output], { type: 'image/svg+xml' });
+            link.href = URL.createObjectURL(blob);
+            link.download = 'palette.svg';
+          } else if (format === 'json') {
+            const blob = new Blob([output], { type: 'application/json' });
+            link.href = URL.createObjectURL(blob);
+            link.download = 'palette.json';
+          } else if (format === 'css') {
+            const blob = new Blob([output], { type: 'text/css' });
+            link.href = URL.createObjectURL(blob);
+            link.download = 'palette.css';
+          }
+          link.click();
+          if (format !== 'png') URL.revokeObjectURL(link.href);
+          showToast(`${format.toUpperCase()} پالت دانلود شد!`);
+        }
+      });
+
+      // Initial palette
+      generatePaletteAndSave();
+    };
+  </script>
+</body>
+</html>
