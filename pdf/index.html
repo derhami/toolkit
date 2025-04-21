@@ -1,0 +1,334 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ادغام و فشرده‌سازی فایل‌های PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fontsource/vazir@4.5.0/index.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Vazir', sans-serif;
+        }
+        .animate-slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300">
+    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 w-full max-w-3xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">ادغام و فشرده‌سازی فایل‌های PDF</h1>
+            <button onclick="toggleTheme()" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+            </button>
+        </div>
+
+        <input type="file" id="pdfFiles" multiple accept=".pdf" class="block w-full text-sm text-gray-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-blue-300 mb-4">
+
+        <div id="pdfList" class="space-y-3 mb-4 min-h-[100px] border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
+            <p class="text-gray-500 dark:text-gray-400 text-center" id="noFiles">هیچ فایلی انتخاب نشده است</p>
+        </div>
+
+        <div class="mb-4">
+            <label for="compressionLevel" class="block text-sm font-medium text-gray-700 dark:text-gray-300">سطح فشرده‌سازی:</label>
+            <select id="compressionLevel" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="none">بدون فشرده‌سازی</option>
+                <option value="low">کم</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="high">زیاد</option>
+            </select>
+        </div>
+
+        <div class="flex space-x-4 space-x-reverse mb-4">
+            <button onclick="mergePDFs()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 dark:disabled:bg-gray-600" id="mergeButton" disabled>ادغام و فشرده‌سازی</button>
+            <button onclick="clearFiles()" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400 dark:disabled:bg-gray-600" id="clearButton" disabled>پاک‌سازی</button>
+        </div>
+
+        <div class="mb-4">
+            <label for="outputName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">نام فایل خروجی:</label>
+            <input type="text" id="outputName" value="merged.pdf" class="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mb-4 hidden" id="progressContainer">
+            <div class="bg-blue-600 h-2.5 rounded-full progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+
+        <p id="status" class="mt-4 text-center text-gray-800 dark:text-gray-100"></p>
+    </div>
+
+    <script>
+        const pdfFilesInput = document.getElementById('pdfFiles');
+        const pdfList = document.getElementById('pdfList');
+        const noFiles = document.getElementById('noFiles');
+        const mergeButton = document.getElementById('mergeButton');
+        const clearButton = document.getElementById('clearButton');
+        const outputNameInput = document.getElementById('outputName');
+        const compressionLevel = document.getElementById('compressionLevel');
+        const status = document.getElementById('status');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        let pdfFileList = [];
+
+        pdfFilesInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                pdfFileList.push({ file, pageCount: pdf.getPageCount(), selectedPages: Array.from({ length: pdf.getPageCount() }, (_, i) => i + 1) });
+            }
+            updateFileList();
+        });
+
+        function updateFileList() {
+            pdfList.innerHTML = '';
+            noFiles.style.display = pdfFileList.length ? 'none' : 'block';
+            mergeButton.disabled = pdfFileList.length === 0;
+            clearButton.disabled = pdfFileList.length === 0;
+
+            pdfFileList.forEach((pdf, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex flex-col p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg cursor-move animate-slide-in';
+                div.draggable = true;
+                div.dataset.index = index;
+
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-700 dark:text-gray-200">${pdf.file.name} (${pdf.pageCount} صفحه)</span>
+                        <div class="space-x-2 space-x-reverse">
+                            <button onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">حذف</button>
+                            <button onclick="togglePageSelection(${index})" class="text-blue-500 hover:text-blue-700">انتخاب صفحات</button>
+                        </div>
+                    </div>
+                    <div class="hidden mt-2" id="pageSelection-${index}">
+                        <label class="block text-sm text-gray-600 dark:text-gray-400">صفحات (مثال: 1,3-5):</label>
+                        <input type="text" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-100" 
+                               value="${pdf.selectedPages.join(',')}" 
+                               oninput="updateSelectedPages(${index}, this.value)">
+                    </div>
+                `;
+
+                div.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', index);
+                });
+
+                div.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                div.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    const toIndex = parseInt(e.target.closest('div').dataset.index);
+                    reorderFiles(fromIndex, toIndex);
+                });
+
+                pdfList.appendChild(div);
+            });
+        }
+
+        function removeFile(index) {
+            pdfFileList.splice(index, 1);
+            updateFileList();
+        }
+
+        function reorderFiles(fromIndex, toIndex) {
+            const [movedFile] = pdfFileList.splice(fromIndex, 1);
+            pdfFileList.splice(toIndex, 0, movedFile);
+            updateFileList();
+        }
+
+        function togglePageSelection(index) {
+            const selectionDiv = document.getElementById(`pageSelection-${index}`);
+            selectionDiv.classList.toggle('hidden');
+        }
+
+        function updateSelectedPages(index, value) {
+            const pages = parsePageInput(value, pdfFileList[index].pageCount);
+            pdfFileList[index].selectedPages = pages;
+        }
+
+        function parsePageInput(input, maxPages) {
+            const pages = [];
+            const parts = input.split(',').map(part => part.trim());
+            for (const part of parts) {
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(num => parseInt(num));
+                    if (!isNaN(start) && !isNaN(end) && start >= 1 && end <= maxPages && start <= end) {
+                        for (let i = start; i <= end; i++) pages.push(i);
+                    }
+                } else {
+                    const page = parseInt(part);
+                    if (!isNaN(page) && page >= 1 && page <= maxPages) pages.push(page);
+                }
+            }
+            return [...new Set(pages)].sort((a, b) => a - b);
+        }
+
+        function clearFiles() {
+            pdfFileList = [];
+            updateFileList();
+            status.textContent = 'لیست فایل‌ها پاک شد.';
+            status.className = 'text-green-600 dark:text-green-400';
+        }
+
+        async function mergePDFs() {
+            status.textContent = 'در حال پردازش...';
+            status.className = 'text-blue-600 dark:text-blue-400';
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+
+            if (pdfFileList.length === 0) {
+                status.textContent = 'لطفاً حداقل یک فایل PDF انتخاب کنید.';
+                status.className = 'text-red-600 dark:text-red-400';
+                progressContainer.classList.add('hidden');
+                return;
+            }
+
+            const pdfDoc = await PDFLib.PDFDocument.create();
+            let totalPagesProcessed = 0;
+            const totalPages = pdfFileList.reduce((sum, pdf) => sum + pdf.selectedPages.length, 0);
+            const compLevel = compressionLevel.value;
+
+            try {
+                for (const pdf of pdfFileList) {
+                    const arrayBuffer = await pdf.file.arrayBuffer();
+                    const srcPdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                    const pageIndices = pdf.selectedPages.map(page => page - 1).filter(index => index >= 0 && index < srcPdf.getPageCount());
+                    if (pageIndices.length > 0) {
+                        const copiedPages = await pdfDoc.copyPages(srcPdf, pageIndices);
+                        copiedPages.forEach((page) => pdfDoc.addPage(page));
+                    }
+                    totalPagesProcessed += pageIndices.length;
+                    progressBar.style.width = `${(totalPagesProcessed / totalPages) * 100}%`;
+                }
+
+                // بهینه‌سازی و فشرده‌سازی
+                if (compLevel !== 'none') {
+                    status.textContent = 'در حال فشرده‌سازی...';
+                    progressBar.style.width = '90%';
+                    await optimizePDF(pdfDoc, compLevel);
+                }
+
+                const pdfBytes = await pdfDoc.save({ updateMetadata: false });
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                const outputName = outputNameInput.value.trim() || 'merged';
+                const finalName = outputName.endsWith('.pdf') ? outputName : `${outputName}.pdf`;
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = finalName;
+                link.click();
+                URL.revokeObjectURL(url);
+
+                status.textContent = `فایل PDF با موفقیت ادغام ${compLevel !== 'none' ? 'و فشرده‌سازی ' : ''}شد!`;
+                status.className = 'text-green-600 dark:text-green-400';
+            } catch (error) {
+                status.textContent = 'خطا در پردازش فایل‌ها: ' + error.message;
+                status.className = 'text-red-600 dark:text-red-400';
+            } finally {
+                progressContainer.classList.add('hidden');
+            }
+        }
+
+        async function optimizePDF(pdfDoc, level) {
+            // حذف متادیتا اضافی
+            pdfDoc.setTitle('');
+            pdfDoc.setAuthor('');
+            pdfDoc.setSubject('');
+            pdfDoc.setKeywords([]);
+            pdfDoc.setProducer('');
+            pdfDoc.setCreator('');
+
+            // بهینه‌سازی صفحات بر اساس سطح فشرده‌سازی
+            const pages = pdfDoc.getPages();
+            for (const page of pages) {
+                const resources = page.node.get('Resources')?.asDict();
+                if (resources) {
+                    const xObject = resources.get('XObject')?.asDict();
+                    if (xObject) {
+                        for (const [key, stream] of xObject.entries()) {
+                            if (stream?.isStream() && stream.dict.get('Subtype')?.toString() === '/Image') {
+                                // تنظیمات فشرده‌سازی برای تصاویر
+                                const filters = level === 'high' ? ['/DCTDecode'] : level === 'medium' ? ['/FlateDecode'] : null;
+                                if (filters) {
+                                    stream.dict.set('Filter', pdfDoc.context.obj(filters));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            // ذخیره تم در localStorage برای حفظ حالت
+            if (document.body.classList.contains('dark')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // بارگذاری تم ذخیره‌شده هنگام لود صفحه
+        window.addEventListener('load', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+            }
+        });
+    </script>
+</body>
+</html>
