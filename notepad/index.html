@@ -1,0 +1,744 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نوت‌بوک آنلاین حرفه‌ای</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @font-face {
+      font-family: 'Vazir';
+      src: url('data:font/woff2;base64,...') format('woff2'); /* Placeholder for Vazir font */
+      font-weight: normal;
+    }
+    @font-face {
+      font-family: 'Vazir';
+      src: url('data:font/woff2;base64,...') format('woff2'); /* Placeholder for Vazir Bold */
+      font-weight: bold;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: 'Vazir', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #f3f4f6, #dbeafe);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      margin: 0;
+      font-size: 16px;
+    }
+    .container {
+      background: #ffffff;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      max-width: 900px;
+      width: 100%;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      flex: 1;
+      padding: 0.75rem;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      color: #4b5563;
+      transition: all 0.3s;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .tab.active {
+      color: #2563eb;
+      border-bottom: 3px solid #2563eb;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      color: #4b5563;
+      margin-bottom: 0.5rem;
+    }
+    input, select, button {
+      font-family: 'Vazir', sans-serif;
+      font-size: 14px;
+    }
+    #editorArea {
+      border: 1px solid #e5e7eb;
+      padding: 1rem;
+      height: 300px;
+      overflow-y: auto;
+      border-radius: 0.5rem;
+      background: #f9fafb;
+      font-size: 14px;
+      outline: none;
+    }
+    #noteTitle {
+      height: 40px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+    .ribbon {
+      background: #e5e7eb;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .ribbon button, .ribbon select {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      color: #000000;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      height: 40px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .ribbon button:hover, .ribbon select:hover {
+      background: #d1d5db;
+    }
+    .metadata-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+    }
+    .metadata-grid .field {
+      flex: 1 1 45%;
+      min-width: 150px;
+    }
+    .metadata-grid .field.full {
+      flex: 1 1 90%;
+    }
+    .note-list, .notebook-list {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      background: #f9fafb;
+    }
+    .note-item, .notebook-item {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+      cursor: pointer;
+      font-size: 14px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.3s;
+    }
+    .note-item:hover, .notebook-item:hover {
+      background: #e5e7eb;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      background: #f9fafb;
+      height: 40px;
+    }
+    input[readonly] {
+      background: #e5e7eb;
+      cursor: not-allowed;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      height: 40px;
+      font-size: 14px;
+      transition: background 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    button:hover {
+      background: #1e40af;
+    }
+    #settings button {
+      background: #ffffff;
+      color: #4b5563;
+      border: 1px solid #d1d5db;
+    }
+    #settings button:hover {
+      background: #d1d5db;
+    }
+    #toast {
+      transition: opacity 0.3s;
+      opacity: 0;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: #1f2937;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #toast.show {
+      opacity: 1;
+    }
+    .dark-mode {
+      background: linear-gradient(135deg, #1f2937, #4b5563);
+    }
+    .dark-mode .container {
+      background: #374151;
+      color: #f3f4f6;
+    }
+    .dark-mode .tab, .dark-mode .note-item, .dark-mode .notebook-item, .dark-mode .form-group label {
+      color: #f3f4f6;
+    }
+    .dark-mode .note-list, .dark-mode .notebook-list, .dark-mode #editorArea, .dark-mode input, .dark-mode select {
+      border-color: #4b5563;
+      background: #4b5563;
+      color: #f3f4f6;
+    }
+    .dark-mode input[readonly] {
+      background: #6b7280;
+    }
+    .dark-mode .ribbon, .dark-mode .ribbon button, .dark-mode .ribbon select {
+      background: #4b5563;
+      border-color: #6b7280;
+    }
+    .dark-mode .ribbon button:hover, .dark-mode .ribbon select:hover {
+      background: #6b7280;
+    }
+    .dark-mode .metadata-grid {
+      background: #4b5563;
+      border-color: #6b7280;
+    }
+    .dark-mode #settings button {
+      background: #4b5563;
+      color: #f3f4f6;
+      border-color: #6b7280;
+    }
+    .dark-mode #settings button:hover {
+      background: #6b7280;
+    }
+    footer {
+      margin-top: 1em;
+    }
+    /* Embedded Tailwind CSS (placeholder) */
+    *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}...
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">نوت‌بوک آنلاین حرفه‌ای</h1>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="editor"><i class="fas fa-pencil-alt"></i> ویرایشگر</div>
+      <div class="tab" data-tab="notebooks"><i class="fas fa-book"></i> دفترچه‌ها</div>
+      <div class="tab" data-tab="search"><i class="fas fa-search"></i> جستجو</div>
+      <div class="tab" data-tab="settings"><i class="fas fa-cog"></i> تنظیمات</div>
+    </div>
+
+    <div id="editor" class="tab-content active">
+      <div class="form-group">
+        <label for="noteTitle">عنوان یادداشت</label>
+        <input type="text" id="noteTitle" placeholder="عنوان یادداشت">
+      </div>
+      <div class="form-group">
+        <label for="editorArea">محتوای یادداشت</label>
+        <div class="ribbon">
+          <select onchange="format('formatBlock', this.value)">
+            <option value="p">عادی</option>
+            <option value="h1">سرتیتر ۱</option>
+            <option value="h2">سرتیتر ۲</option>
+          </select>
+          <button onclick="format('bold')"><i class="fas fa-bold"></i> پررنگ</button>
+          <button onclick="format('italic')"><i class="fas fa-italic"></i> کج</button>
+          <button onclick="format('underline')"><i class="fas fa-underline"></i> زیرخط</button>
+          <button onclick="format('insertUnorderedList')"><i class="fas fa-list-ul"></i> لیست</button>
+          <button onclick="format('createChecklist')"><i class="fas fa-check-square"></i> چک‌لیست</button>
+          <button onclick="document.getElementById('imageUpload').click()"><i class="fas fa-image"></i> تصویر</button>
+          <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+        </div>
+        <div id="editorArea" contenteditable="true"></div>
+      </div>
+      <div class="form-group">
+        <label>اطلاعات اضافی</label>
+        <div class="metadata-grid">
+          <div class="field">
+            <label for="noteTags">برچسب‌ها</label>
+            <input type="text" id="noteTags" placeholder="برچسب‌ها (با کاما جدا کنید)">
+          </div>
+          <div class="field">
+            <label for="notePassword">رمز</label>
+            <input type="text" id="notePassword" placeholder="رمز (اختیاری)">
+          </div>
+          <div class="field full">
+            <label for="noteDate">تاریخ</label>
+            <input type="text" id="noteDate" readonly>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="notebookSelect">دفترچه</label>
+        <select id="notebookSelect">
+          <option value="">انتخاب دفترچه</option>
+        </select>
+      </div>
+      <div class="flex gap-4">
+        <button onclick="saveNote()"><i class="fas fa-save"></i> ذخیره</button>
+        <button onclick="shareNote()"><i class="fas fa-share"></i> اشتراک</button>
+        <button onclick="exportPDF()"><i class="fas fa-file-pdf"></i> خروجی PDF</button>
+        <button onclick="exportTXT()"><i class="fas fa-file-alt"></i> خروجی TXT</button>
+        <button onclick="exportDOCX()"><i class="fas fa-file-word"></i> خروجی Word</button>
+      </div>
+    </div>
+
+    <div id="notebooks" class="tab-content">
+      <div class="form-group">
+        <label for="newNotebook">دفترچه جدید</label>
+        <div class="flex gap-4">
+          <input type="text" id="newNotebook" placeholder="نام دفترچه جدید">
+          <button onclick="addNotebook()"><i class="fas fa-plus"></i> افزودن دفترچه</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>دفترچه‌ها</label>
+        <div class="notebook-list" id="notebookList"></div>
+      </div>
+      <div class="form-group">
+        <label>یادداشت‌ها</label>
+        <div class="note-list" id="noteList"></div>
+      </div>
+    </div>
+
+    <div id="search" class="tab-content">
+      <div class="form-group">
+        <label for="searchInput">جستجوی یادداشت‌ها</label>
+        <input type="text" id="searchInput" placeholder="جستجوی یادداشت‌ها">
+      </div>
+      <div class="form-group">
+        <label>نتایج جستجو</label>
+        <div id="searchResults" class="note-list"></div>
+      </div>
+    </div>
+
+    <div id="settings" class="tab-content">
+      <div class="form-group">
+        <label>تنظیمات</label>
+        <div class="flex flex-col gap-4">
+          <button onclick="toggleDarkMode()"><i class="fas fa-moon"></i> تغییر تم (روشن/تاریک)</button>
+          <button onclick="toggleMarkdown()"><i class="fas fa-code"></i> حالت مارک‌داون</button>
+          <button onclick="exportNotes()"><i class="fas fa-download"></i> خروجی تمام یادداشت‌ها (JSON)</button>
+          <input type="file" id="importNotes" accept=".json">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-4 text-center text-sm text-gray-600">
+    <i class="fas fa-user"></i> طراحی شده توسط <a href="https://hawid.ir" target="_blank" class="underline hover:text-indigo-600">حمیدرضا درهمی</a>
+  </footer>
+
+  <div id="toast" class="bg-gray-800 text-white py-2 px-4 rounded-md shadow-lg"><i class="fas fa-check"></i> <span></span></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.28.0/docxtemplater.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.1/pizzip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script>
+    let notes = JSON.parse(localStorage.getItem('notes')) || [];
+    let notebooks = JSON.parse(localStorage.getItem('notebooks')) || [{ id: 'default', name: 'دفترچه پیش‌فرض' }];
+    let currentNoteId = null;
+    let isMarkdown = false;
+
+    window.onload = () => {
+      const editorArea = document.getElementById('editorArea');
+      const noteTitle = document.getElementById('noteTitle');
+      const noteTags = document.getElementById('noteTags');
+      const notePassword = document.getElementById('notePassword');
+      const noteDate = document.getElementById('noteDate');
+      const notebookSelect = document.getElementById('notebookSelect');
+      const notebookList = document.getElementById('notebookList');
+      const noteList = document.getElementById('noteList');
+      const searchInput = document.getElementById('searchInput');
+      const searchResults = document.getElementById('searchResults');
+      const imageUpload = document.getElementById('imageUpload');
+      const importNotes = document.getElementById('importNotes');
+      const toast = document.getElementById('toast').querySelector('span');
+      const tabs = document.querySelectorAll('.tab');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      // Check font loading
+      if (!document.fonts.check('16px Vazir')) {
+        showToast('فونت وزیری بارگذاری نشد. لطفاً اتصال اینترنت را بررسی کنید.');
+      }
+
+      // Tab switching
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(c => c.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById(tab.dataset.tab).classList.add('active');
+          if (tab.dataset.tab === 'notebooks') renderNotebooks();
+        });
+      });
+
+      // Show toast
+      function showToast(message) {
+        toast.textContent = message;
+        toast.parentElement.classList.add('show');
+        setTimeout(() => toast.parentElement.classList.remove('show'), 3000);
+      }
+
+      // Render notebooks
+      function renderNotebooks() {
+        notebookSelect.innerHTML = '<option value="">انتخاب دفترچه</option>';
+        notebookList.innerHTML = '';
+        notebooks.forEach(nb => {
+          const option = document.createElement('option');
+          option.value = nb.id;
+          option.textContent = nb.name;
+          notebookSelect.appendChild(option);
+
+          const div = document.createElement('div');
+          div.className = 'notebook-item';
+          div.innerHTML = `<i class="fas fa-folder"></i> ${nb.name}`;
+          div.onclick = () => renderNotes(nb.id);
+          notebookList.appendChild(div);
+        });
+      }
+
+      // Render notes
+      function renderNotes(notebookId) {
+        noteList.innerHTML = '';
+        const filteredNotes = notes.filter(n => n.notebookId === notebookId);
+        filteredNotes.forEach(note => {
+          const div = document.createElement('div');
+          div.className = 'note-item';
+          div.innerHTML = `<i class="fas fa-note-sticky"></i> ${note.title || 'بدون عنوان'}`;
+          div.onclick = () => loadNote(note.id);
+          noteList.appendChild(div);
+        });
+      }
+
+      // Add notebook
+      window.addNotebook = () => {
+        const name = document.getElementById('newNotebook').value;
+        if (!name) return showToast('لطفاً نام دفترچه را وارد کنید!');
+        const id = Date.now().toString();
+        notebooks.push({ id, name });
+        localStorage.setItem('notebooks', JSON.stringify(notebooks));
+        renderNotebooks();
+        document.getElementById('newNotebook').value = '';
+        showToast('دفترچه اضافه شد!');
+      };
+
+      // Save note
+      window.saveNote = () => {
+        const content = isMarkdown ? editorArea.textContent : editorArea.innerHTML;
+        if (!noteTitle.value && !content) return showToast('عنوان یا محتوا را وارد کنید!');
+        const note = {
+          id: currentNoteId || Date.now().toString(),
+          title: noteTitle.value,
+          content,
+          tags: noteTags.value.split(',').map(t => t.trim()).filter(t => t),
+          password: notePassword.value,
+          date: new Date().toISOString().split('T')[0],
+          notebookId: notebookSelect.value || 'default',
+          updated: new Date().toISOString(),
+          isMarkdown
+        };
+        const index = notes.findIndex(n => n.id === note.id);
+        if (index >= 0) notes[index] = note;
+        else notes.push(note);
+        localStorage.setItem('notes', JSON.stringify(notes));
+        currentNoteId = note.id;
+        noteDate.value = note.date;
+        showToast('یادداشت ذخیره شد!');
+      };
+
+      // Load note
+      function loadNote(id) {
+        const note = notes.find(n => n.id === id);
+        if (!note) return showToast('یادداشت یافت نشد!');
+        if (note.password) {
+          const pwd = prompt('رمز یادداشت را وارد کنید:');
+          if (pwd !== note.password) return showToast('رمز نادرست است!');
+        }
+        currentNoteId = id;
+        noteTitle.value = note.title;
+        noteTags.value = note.tags.join(', ');
+        notePassword.value = note.password;
+        noteDate.value = note.date;
+        notebookSelect.value = note.notebookId;
+        isMarkdown = note.isMarkdown;
+        editorArea.contentEditable = !isMarkdown;
+        editorArea.innerHTML = isMarkdown ? '' : note.content;
+        editorArea.textContent = isMarkdown ? note.content : '';
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        document.querySelector('[data-tab="editor"]').classList.add('active');
+        document.getElementById('editor').classList.add('active');
+      }
+
+      // Format text
+      window.format = (cmd, value) => {
+        if (cmd === 'createChecklist') {
+          const li = document.createElement('li');
+          li.innerHTML = '<input type="checkbox"> کار جدید';
+          document.execCommand('insertHTML', false, `<ul>${li.outerHTML}</ul>`);
+        } else if (cmd === 'formatBlock') {
+          document.execCommand('formatBlock', false, value);
+        } else {
+          document.execCommand(cmd, false, null);
+        }
+      };
+
+      // Image upload
+      imageUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = `<img src="${ev.target.result}" style="max-width: 100%;">`;
+            document.execCommand('insertHTML', false, img);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Search notes
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        searchResults.innerHTML = '';
+        const filtered = notes.filter(n => 
+          n.title.toLowerCase().includes(query) || 
+          n.content.toLowerCase().includes(query) ||
+          n.tags.some(t => t.toLowerCase().includes(query))
+        );
+        filtered.forEach(note => {
+          const div = document.createElement('div');
+          div.className = 'note-item';
+          div.innerHTML = `<i class="fas fa-note-sticky"></i> ${note.title || 'بدون عنوان'}`;
+          div.onclick = () => loadNote(note.id);
+          searchResults.appendChild(div);
+        });
+      });
+
+      // Share note
+      window.shareNote = () => {
+        const note = notes.find(n => n.id === currentNoteId);
+        if (!note) return showToast('یادداشتی انتخاب نشده است!');
+        const data = btoa(JSON.stringify(note));
+        const url = `${window.location.href}?note=${data}`;
+        navigator.clipboard.writeText(url).then(() => showToast(`لینک اشتراک برای "${note.title || 'بدون عنوان'}" کپی شد!`));
+      };
+
+      // Export notes (all)
+      window.exportNotes = () => {
+        const data = JSON.stringify({ notes, notebooks }, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'notes.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('تمام یادداشت‌ها صادر شدند!');
+      };
+
+      // Export PDF
+      window.exportPDF = () => {
+        const note = notes.find(n => n.id === currentNoteId);
+        if (!note) return showToast('یادداشتی انتخاب نشده است!');
+        const element = document.createElement('div');
+        element.style.padding = '20px';
+        element.style.fontFamily = 'Vazir, sans-serif';
+        element.innerHTML = `
+          <h1>${note.title || 'بدون عنوان'}</h1>
+          <p><strong>تاریخ:</strong> ${note.date}</p>
+          <p><strong>برچسب‌ها:</strong> ${note.tags.join(', ') || 'بدون برچسب'}</p>
+          <hr>
+          ${note.isMarkdown ? `<pre>${note.content}</pre>` : note.content}
+        `;
+        html2pdf().from(element).set({
+          filename: `note-${note.title || 'untitled'}.pdf`,
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).save();
+        showToast(`یادداشت "${note.title || 'بدون عنوان'}" به PDF صادر شد!`);
+      };
+
+      // Export TXT
+      window.exportTXT = () => {
+        const note = notes.find(n => n.id === currentNoteId);
+        if (!note) return showToast('یادداشتی انتخاب نشده است!');
+        const content = note.isMarkdown ? note.content : note.content.replace(/<[^>]+>/g, '');
+        const text = `عنوان: ${note.title || 'بدون عنوان'}\nتاریخ: ${note.date}\nبرچسب‌ها: ${note.tags.join(', ') || 'بدون برچسب'}\n\n${content}`;
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `note-${note.title || 'untitled'}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`یادداشت "${note.title || 'بدون عنوان'}" به TXT صادر شد!`);
+      };
+
+      // Export DOCX
+      window.exportDOCX = () => {
+        const note = notes.find(n => n.id === currentNoteId);
+        if (!note) return showToast('یادداشتی انتخاب نشده است!');
+        const content = note.isMarkdown ? note.content : note.content.replace(/<[^>]+>/g, '');
+        const doc = new docxtemplater();
+        const zip = new PizZip();
+        zip.file('word/document.xml', `
+          <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+            <w:body>
+              <w:p><w:r><w:t>${note.title || 'بدون عنوان'}</w:t></w:r></w:p>
+              <w:p><w:r><w:t>تاریخ: ${note.date}</w:t></w:r></w:p>
+              <w:p><w:r><w:t>برچسب‌ها: ${note.tags.join(', ') || 'بدون برچسب'}</w:t></w:r></w:p>
+              <w:p><w:r><w:t>${content}</w:t></w:r></w:p>
+            </w:body>
+          </w:document>
+        `);
+        doc.loadZip(zip);
+        doc.render();
+        const blob = doc.getZip().generate({ type: 'blob' });
+        saveAs(blob, `note-${note.title || 'untitled'}.docx`);
+        showToast(`یادداشت "${note.title || 'بدون عنوان'}" به Word صادر شد!`);
+      };
+
+      // Import notes
+      importNotes.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const data = JSON.parse(ev.target.result);
+              notes = data.notes || [];
+              notebooks = data.notebooks || [{ id: 'default', name: 'دفترچه پیش‌فرض' }];
+              localStorage.setItem('notes', JSON.stringify(notes));
+              localStorage.setItem('notebooks', JSON.stringify(notebooks));
+              renderNotebooks();
+              showToast('یادداشت‌ها وارد شدند!');
+            } catch {
+              showToast('فایل نامعتبر است!');
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+
+      // Toggle dark mode
+      window.toggleDarkMode = () => {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+      };
+      if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+
+      // Toggle Markdown
+      window.toggleMarkdown = () => {
+        isMarkdown = !isMarkdown;
+        editorArea.contentEditable = !isMarkdown;
+        showToast(isMarkdown ? 'حالت مارک‌داون فعال شد' : 'حالت ویرایشگر فعال شد');
+      };
+
+      // Load shared note from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedNote = urlParams.get('note');
+      if (sharedNote) {
+        try {
+          const note = JSON.parse(atob(sharedNote));
+          notes.push(note);
+          localStorage.setItem('notes', JSON.stringify(notes));
+          loadNote(note.id);
+          showToast('یادداشت اشتراکی بارگذاری شد!');
+        } catch {
+          showToast('لینک اشتراک نامعتبر است!');
+        }
+      }
+
+      // Initial render
+      noteDate.value = new Date().toISOString().split('T')[0];
+      renderNotebooks();
+      showToast('برای ذخیره دائمی، به صورت دوره‌ای از یادداشت‌ها خروجی بگیرید!');
+    };
+  </script>
+</body>
+</html>
