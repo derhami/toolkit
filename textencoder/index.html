@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>رمزنگاری متن 🔒 - Hawid.ir</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+    }
+    .bg-primary {
+      background-color: #0d6efd;
+    }
+    .text-primary {
+      color: #0d6efd;
+    }
+    .dark-mode {
+      background-color: #1a202c;
+      color: #f1f1f1;
+    }
+    .dark-mode textarea, .dark-mode input, .dark-mode select {
+      background-color: #2d3748;
+      color: #f1f1f1;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center p-4 transition-colors" id="mainBody">
+  <div class="absolute top-4 left-4">
+    <button onclick="toggleTheme()" class="text-primary text-2xl" title="تغییر تم"><i class="fas fa-adjust"></i></button>
+  </div>
+
+  <div class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+    <h1 class="text-2xl font-bold text-center text-primary mb-6">رمزنگاری متن با الگوریتم‌های مختلف 🔒</h1>
+
+    <textarea id="inputText" rows="4" placeholder="متن را وارد کنید..." class="w-full p-3 mb-2 border rounded-md border-gray-300" oninput="updateCount('inputText', 'inputCount')"></textarea>
+    <p class="text-xs text-gray-500 mb-4" id="inputCount">۰ کاراکتر، ۰ بایت</p>
+
+    <label class="block mb-2 font-semibold">انتخاب الگوریتم:</label>
+    <select id="algorithm" class="w-full p-2 mb-4 border rounded-md border-gray-300">
+      <option value="caesar">Caesar Cipher</option>
+      <option value="sha256">SHA-256</option>
+    </select>
+
+    <input id="keyInput" type="number" placeholder="کلید (برای Caesar)" class="w-full p-2 mb-4 border rounded-md border-gray-300" />
+
+    <div class="flex gap-4 mb-4 flex-wrap">
+      <button onclick="encryptText()" class="bg-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition">رمزنگاری</button>
+      <button onclick="decryptText()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:opacity-90 transition">بازگشایی</button>
+      <button onclick="clearFields()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition">پاک کردن</button>
+    </div>
+
+    <textarea id="outputText" rows="4" readonly onclick="copyOutput()" class="w-full p-3 border rounded-md border-gray-300 bg-gray-100 text-gray-800 dark:bg-gray-700"></textarea>
+    <p class="text-xs text-gray-500 mt-2" id="outputCount">۰ کاراکتر، ۰ بایت</p>
+
+    <div class="flex justify-between mt-4">
+      <span class="text-sm text-primary hover:underline cursor-pointer" onclick="copyOutput()"><i class="fas fa-copy"></i> کپی خروجی</span>
+      <span class="text-sm text-blue-600 hover:underline cursor-pointer" onclick="downloadOutput()"><i class="fas fa-download"></i> دانلود خروجی</span>
+    </div>
+
+    <p class="text-xs text-center text-gray-500 mt-6">
+      طراحی شده توسط <a href="https://hawid.ir/" target="_blank" class="text-primary hover:underline">حمیدرضا درهمی</a>
+    </p>
+  </div>
+
+  <script>
+    function updateCount(id, displayId) {
+      const text = document.getElementById(id).value;
+      const bytes = new Blob([text]).size;
+      document.getElementById(displayId).innerText = `${text.length} کاراکتر، ${bytes} بایت`;
+    }
+
+    function toggleTheme() {
+      document.getElementById("mainBody").classList.toggle("dark-mode");
+    }
+
+    function clearFields() {
+      document.getElementById("inputText").value = "";
+      document.getElementById("outputText").value = "";
+      updateCount('inputText', 'inputCount');
+      updateCount('outputText', 'outputCount');
+    }
+
+    function copyOutput() {
+      const output = document.getElementById("outputText");
+      output.select();
+      document.execCommand("copy");
+      alert("خروجی کپی شد ✅");
+    }
+
+    function downloadOutput() {
+      const text = document.getElementById("outputText").value;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "encrypted_output.txt";
+      link.click();
+    }
+
+    function encryptText() {
+      const algorithm = document.getElementById("algorithm").value;
+      const text = document.getElementById("inputText").value;
+      let result = "";
+
+      if (algorithm === "caesar") {
+        const key = parseInt(document.getElementById("keyInput").value) || 0;
+        result = text.split('').map(char => {
+          const code = char.charCodeAt(0);
+          return String.fromCharCode(code + key);
+        }).join('');
+      } else if (algorithm === "sha256") {
+        crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)).then(buffer => {
+          const hashArray = Array.from(new Uint8Array(buffer));
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          document.getElementById("outputText").value = hashHex;
+          updateCount('outputText', 'outputCount');
+        });
+        return;
+      }
+
+      document.getElementById("outputText").value = result;
+      updateCount('outputText', 'outputCount');
+    }
+
+    function decryptText() {
+      const algorithm = document.getElementById("algorithm").value;
+      const text = document.getElementById("inputText").value;
+      let result = "";
+
+      if (algorithm === "caesar") {
+        const key = parseInt(document.getElementById("keyInput").value) || 0;
+        result = text.split('').map(char => {
+          const code = char.charCodeAt(0);
+          return String.fromCharCode(code - key);
+        }).join('');
+        document.getElementById("outputText").value = result;
+        updateCount('outputText', 'outputCount');
+      } else {
+        document.getElementById("outputText").value = "بازگشایی برای این الگوریتم امکان‌پذیر نیست.";
+        updateCount('outputText', 'outputCount');
+      }
+    }
+  </script>
+</body>
+
+</html>

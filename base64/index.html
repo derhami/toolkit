@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تبدیل متن به Base64 و بالعکس - Hawid.ir</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+    }
+    .bg-primary {
+      background-color: #0d6efd;
+    }
+    .text-primary {
+      color: #0d6efd;
+    }
+    .border-primary {
+      border-color: #0d6efd;
+    }
+    .dark-mode {
+      background-color: #1a202c;
+      color: #f1f1f1;
+    }
+    .dark-mode textarea {
+      background-color: #2d3748;
+      color: #f1f1f1;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center p-4 transition-colors" id="mainBody">
+  <div class="absolute top-4 left-4">
+    <button onclick="toggleTheme()" class="text-primary text-2xl" title="تغییر تم"><i class="fas fa-adjust"></i></button>
+  </div>
+
+  <div class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+    <h1 class="text-2xl font-bold text-center text-primary mb-6">ابزار تبدیل متن به Base64 و برعکس</h1>
+
+    <textarea id="inputText" rows="5" placeholder="متن خود را وارد کنید..." class="w-full p-3 mb-2 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary" oninput="updateCount('inputText', 'inputCount')"></textarea>
+    <p class="text-xs text-gray-500 text-left mb-4" id="inputCount">۰ کاراکتر، ۰ بایت</p>
+
+    <div class="flex gap-4 mb-4 flex-wrap">
+      <button onclick="encodeBase64()" class="bg-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition">تبدیل به Base64</button>
+      <button onclick="decodeBase64()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:opacity-90 transition">تبدیل به متن</button>
+      <button onclick="clearFields()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition">پاک کردن</button>
+      <label class="cursor-pointer bg-yellow-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition">
+        بارگذاری فایل
+        <input type="file" accept=".txt" class="hidden" onchange="loadFile(event)">
+      </label>
+    </div>
+
+    <textarea id="outputText" rows="5" readonly onclick="copyOutput()" class="w-full p-3 border rounded-md border-gray-300 bg-gray-100 text-gray-800 dark:bg-gray-700"></textarea>
+    <p class="text-xs text-gray-500 text-left mt-2" id="outputCount">۰ کاراکتر، ۰ بایت</p>
+
+    <div class="flex justify-between mt-4">
+      <span class="text-sm text-primary hover:underline cursor-pointer" onclick="copyOutput()"><i class="fas fa-copy"></i> کپی خروجی</span>
+      <span class="text-sm text-blue-600 hover:underline cursor-pointer" onclick="downloadOutput()"><i class="fas fa-download"></i> دانلود خروجی</span>
+    </div>
+
+    <p class="text-xs text-gray-500 text-center mt-6">طراحی شده توسط <a href="https://hawid.ir" target="_blank">حمیدرضا درهمی</a></p>
+  </div>
+
+  <script>
+    function encodeBase64() {
+      const text = document.getElementById("inputText").value;
+      try {
+        const encoded = btoa(unescape(encodeURIComponent(text)));
+        document.getElementById("outputText").value = encoded;
+        updateCount('outputText', 'outputCount');
+      } catch {
+        document.getElementById("outputText").value = "خطا در تبدیل. لطفاً بررسی کنید.";
+      }
+    }
+
+    function decodeBase64() {
+      const text = document.getElementById("inputText").value;
+      try {
+        const decoded = decodeURIComponent(escape(atob(text)));
+        document.getElementById("outputText").value = decoded;
+        updateCount('outputText', 'outputCount');
+      } catch {
+        document.getElementById("outputText").value = "Base64 نامعتبر است.";
+        updateCount('outputText', 'outputCount');
+      }
+    }
+
+    function copyOutput() {
+      const output = document.getElementById("outputText");
+      output.select();
+      document.execCommand("copy");
+      alert("خروجی کپی شد ✅");
+    }
+
+    function clearFields() {
+      document.getElementById("inputText").value = "";
+      document.getElementById("outputText").value = "";
+      updateCount('inputText', 'inputCount');
+      updateCount('outputText', 'outputCount');
+    }
+
+    function updateCount(id, displayId) {
+      const text = document.getElementById(id).value;
+      const bytes = new Blob([text]).size;
+      document.getElementById(displayId).innerText = `${text.length} کاراکتر، ${bytes} بایت`;
+    }
+
+    function loadFile(event) {
+      const reader = new FileReader();
+      reader.onload = function() {
+        document.getElementById("inputText").value = reader.result;
+        updateCount('inputText', 'inputCount');
+      }
+      reader.readAsText(event.target.files[0]);
+    }
+
+    function downloadOutput() {
+      const text = document.getElementById("outputText").value;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "output.txt";
+      link.click();
+    }
+
+    function toggleTheme() {
+      const body = document.getElementById("mainBody");
+      body.classList.toggle("dark-mode");
+    }
+  </script>
+</body>
+
+</html>

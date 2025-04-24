@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ساخت پسورد امن 🔐 - Hawid.ir</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+    }
+    .bg-primary {
+      background-color: #0d6efd;
+    }
+    .text-primary {
+      color: #0d6efd;
+    }
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 160px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -80px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center p-4 transition-colors" id="mainBody">
+  <div class="absolute top-4 left-4">
+    <button onclick="toggleTheme()" class="text-primary text-2xl" title="تغییر تم"><i class="fas fa-adjust"></i></button>
+  </div>
+
+  <div class="w-full max-w-xl bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+    <h1 class="text-2xl font-bold text-center text-primary mb-6">ساخت پسورد امن 🔐</h1>
+
+    <div class="mb-4">
+      <label class="font-semibold">طول پسورد:
+        <span class="tooltip"><i class="fas fa-info-circle text-gray-400"></i>
+          <span class="tooltiptext">بین ۶ تا ۵۰ کاراکتر</span>
+        </span>
+      </label>
+      <input type="range" min="6" max="50" value="12" id="lengthRange" class="w-full">
+      <p class="text-sm text-gray-600 mt-1">طول انتخاب‌شده: <span id="rangeValue">12</span></p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <label><input type="checkbox" id="lowercase" checked> حروف کوچک</label>
+      <label><input type="checkbox" id="uppercase" checked> حروف بزرگ</label>
+      <label><input type="checkbox" id="numbers" checked> اعداد</label>
+      <label><input type="checkbox" id="symbols"> نمادها</label>
+    </div>
+
+    <div class="flex gap-4 mb-4">
+      <button onclick="generatePassword()" class="bg-primary text-white px-4 py-2 rounded-lg hover:opacity-90 transition">تولید پسورد</button>
+      <button onclick="copyPassword()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:opacity-90 transition"><i class="fas fa-copy"></i> کپی</button>
+    </div>
+
+    <input type="text" id="passwordOutput" readonly class="w-full p-3 border border-gray-300 rounded-md text-center text-lg bg-gray-100 dark:bg-gray-700">
+    <p class="text-xs text-gray-500 mt-2">روی دکمه کپی کلیک کنید تا پسورد در حافظه ذخیره شود.</p>
+
+    <div class="flex justify-end mt-2">
+      <button onclick="downloadPassword()" class="text-sm text-blue-600 hover:underline cursor-pointer"><i class="fas fa-download"></i> دانلود</button>
+    </div>
+
+    <p class="text-xs text-center text-gray-500 mt-6">
+      طراحی شده توسط <a href="https://hawid.ir/" target="_blank" class="text-primary hover:underline">حمیدرضا درهمی</a>
+    </p>
+  </div>
+
+  <script>
+    document.getElementById("lengthRange").addEventListener("input", function () {
+      document.getElementById("rangeValue").textContent = this.value;
+    });
+
+    function toggleTheme() {
+      document.getElementById("mainBody").classList.toggle("dark-mode");
+    }
+
+    function generatePassword() {
+      const length = document.getElementById("lengthRange").value;
+      const useLower = document.getElementById("lowercase").checked;
+      const useUpper = document.getElementById("uppercase").checked;
+      const useNumbers = document.getElementById("numbers").checked;
+      const useSymbols = document.getElementById("symbols").checked;
+
+      let charset = "";
+      if (useLower) charset += "abcdefghijklmnopqrstuvwxyz";
+      if (useUpper) charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      if (useNumbers) charset += "0123456789";
+      if (useSymbols) charset += "!@#$%^&*()-_=+[]{}<>?/";
+
+      let password = "";
+      for (let i = 0; i < length; i++) {
+        password += charset.charAt(Math.floor(Math.random() * charset.length));
+      }
+      document.getElementById("passwordOutput").value = password;
+    }
+
+    function copyPassword() {
+      const pwField = document.getElementById("passwordOutput");
+      pwField.select();
+      document.execCommand("copy");
+      alert("پسورد کپی شد ✅");
+    }
+
+    function downloadPassword() {
+      const text = document.getElementById("passwordOutput").value;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "secure_password.txt";
+      link.click();
+    }
+  </script>
+</body>
+
+</html>
