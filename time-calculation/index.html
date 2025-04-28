@@ -1,0 +1,236 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماشین حساب زمان</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Vazir', Arial, sans-serif;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold text-center mb-8">ماشین حساب زمان</h1>
+
+        <!-- تب‌های ناوبری -->
+        <div class="flex justify-center mb-6">
+            <button onclick="showSection('calculator')" class="px-4 py-2 mx-2 bg-blue-500 text-white rounded hover:bg-blue-600">جمع و تفریق</button>
+            <button onclick="showSection('converter')" class="px-4 py-2 mx-2 bg-green-500 text-white rounded hover:bg-green-600">تبدیل زمان</button>
+            <button onclick="showSection('timer')" class="px-4 py-2 mx-2 bg-purple-500 text-white rounded hover:bg-purple-600">تایمر</button>
+        </div>
+
+        <!-- بخش جمع و تفریق زمان -->
+        <div id="calculator" class="section bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+            <h2 class="text-lg font-semibold mb-4">جمع و تفریق زمان</h2>
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <input type="number" id="hours1" min="0" placeholder="ساعت" class="border rounded p-2 text-center">
+                <input type="number" id="minutes1" min="0" max="59" placeholder="دقیقه" class="border rounded p-2 text-center">
+                <input type="number" id="seconds1" min="0" max="59" placeholder="ثانیه" class="border rounded p-2 text-center">
+            </div>
+            <select id="operation" class="border rounded p-2 w-full mb-2">
+                <option value="add">جمع</option>
+                <option value="subtract">تفریق</option>
+            </select>
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <input type="number" id="hours2" min="0" placeholder="ساعت" class="border rounded p-2 text-center">
+                <input type="number" id="minutes2" min="0" max="59" placeholder="دقیقه" class="border rounded p-2 text-center">
+                <input type="number" id="seconds2" min="0" max="59" placeholder="ثانیه" class="border rounded p-2 text-center">
+            </div>
+            <button onclick="calculateTime()" class="bg-blue-500 text-white p-2 rounded w-full hover:bg-blue-600">محاسبه</button>
+            <p id="result" class="mt-2 text-center font-semibold"></p>
+        </div>
+
+        <!-- بخش تبدیل زمان -->
+        <div id="converter" class="section hidden bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+            <h2 class="text-lg font-semibold mb-4">تبدیل زمان</h2>
+            <input type="number" id="totalSeconds" min="0" placeholder="ثانیه وارد کنید" class="border rounded p-2 w-full mb-2">
+            <button onclick="convertSeconds()" class="bg-green-500 text-white p-2 rounded w-full hover:bg-green-600">تبدیل به ساعت/دقیقه/ثانیه</button>
+            <p id="convertResult" class="mt-2 text-center font-semibold"></p>
+        </div>
+
+        <!-- بخش تایمر -->
+        <div id="timer" class="section hidden bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+            <h2 class="text-lg font-semibold mb-4">تایمر</h2>
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <input type="number" id="timerHours" min="0" placeholder="ساعت" class="border rounded p-2 text-center">
+                <input type="number" id="timerMinutes" min="0" max="59" placeholder="دقیقه" class="border rounded p-2 text-center">
+                <input type="number" id="timerSeconds" min="0" max="59" placeholder="ثانیه" class="border rounded p-2 text-center">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="startTimer()" class="bg-purple-500 text-white p-2 rounded w-full hover:bg-purple-600">شروع</button>
+                <button onclick="stopTimer()" class="bg-red-500 text-white p-2 rounded w-full hover:bg-red-600">توقف</button>
+                <button onclick="resetTimer()" class="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600">ریست</button>
+            </div>
+            <p id="timerDisplay" class="mt-2 text-center font-semibold"></p>
+        </div>
+
+        <!-- کپی رایت -->
+        <footer class="text-center mt-8 text-gray-600">
+            <p>&copy; 1404 - ماشین حساب زمان. تمامی حقوق محفوظ است.</p>
+        </footer>
+    </div>
+
+    <script>
+        // مدیریت نمایش بخش‌ها
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        // جمع و تفریق زمان
+        function calculateTime() {
+            const hours1 = parseInt(document.getElementById('hours1').value) || 0;
+            const minutes1 = parseInt(document.getElementById('minutes1').value) || 0;
+            const seconds1 = parseInt(document.getElementById('seconds1').value) || 0;
+            const hours2 = parseInt(document.getElementById('hours2').value) || 0;
+            const minutes2 = parseInt(document.getElementById('minutes2').value) || 0;
+            const seconds2 = parseInt(document.getElementById('seconds2').value) || 0;
+            const operation = document.getElementById('operation').value;
+
+            let totalSeconds1 = hours1 * 3600 + minutes1 * 60 + seconds1;
+            let totalSeconds2 = hours2 * 3600 + minutes2 * 60 + seconds2;
+            let resultSeconds;
+
+            if (operation === 'add') {
+                resultSeconds = totalSeconds1 + totalSeconds2;
+            } else {
+                resultSeconds = totalSeconds1 - totalSeconds2;
+            }
+
+            if (resultSeconds < 0) {
+                document.getElementById('result').innerText = 'نتیجه منفی است!';
+                return;
+            }
+
+            const hours = Math.floor(resultSeconds / 3600);
+            resultSeconds %= 3600;
+            const minutes = Math.floor(resultSeconds / 60);
+            const seconds = resultSeconds % 60;
+
+            document.getElementById('result').innerText = `${hours} ساعت، ${minutes} دقیقه، ${seconds} ثانیه`;
+        }
+
+        // تبدیل زمان
+        function convertSeconds() {
+            const totalSeconds = parseInt(document.getElementById('totalSeconds').value) || 0;
+            if (totalSeconds < 0) {
+                document.getElementById('convertResult').innerText = 'مقدار منفی مجاز نیست!';
+                return;
+            }
+
+            const hours = Math.floor(totalSeconds / 3600);
+            const remainingSeconds = totalSeconds % 3600;
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+
+            document.getElementById('convertResult').innerText = `${hours} ساعت، ${minutes} دقیقه، ${seconds} ثانیه`;
+        }
+
+        // مدیریت تایمر
+        let timerInterval;
+        let totalSeconds = 0;
+        let isRunning = false;
+
+        function startTimer() {
+            if (isRunning) return;
+            const hours = parseInt(document.getElementById('timerHours').value) || 0;
+            const minutes = parseInt(document.getElementById('timerMinutes').value) || 0;
+            const seconds = parseInt(document.getElementById('timerSeconds').value) || 0;
+
+            totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            if (totalSeconds <= 0) {
+                document.getElementById('timerDisplay').innerText = 'لطفاً زمان معتبر وارد کنید!';
+                return;
+            }
+
+            isRunning = true;
+            timerInterval = setInterval(() => {
+                if (totalSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    document.getElementById('timerDisplay').innerText = 'تایمر به پایان رسید!';
+                    return;
+                }
+
+                const hours = Math.floor(totalSeconds / 3600);
+                totalSeconds %= 3600;
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+
+                document.getElementById('timerDisplay').innerText = `${hours} ساعت، ${minutes} دقیقه، ${seconds} ثانیه`;
+                totalSeconds--;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            totalSeconds = 0;
+            document.getElementById('timerHours').value = '';
+            document.getElementById('timerMinutes').value = '';
+            document.getElementById('timerSeconds').value = '';
+            document.getElementById('timerDisplay').innerText = '';
+        }
+
+        // نمایش پیش‌فرض بخش ماشین حساب
+        showSection('calculator');
+    </script>
+</body>
+</html>

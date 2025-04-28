@@ -1,0 +1,395 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماشین حساب وام</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Vazir', Arial, sans-serif;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold text-center mb-8">ماشین حساب وام</h1>
+
+        <!-- تب‌های ناوبری -->
+        <div class="flex justify-center mb-6">
+            <button onclick="showSection('loanCalculator')" class="px-4 py-2 mx-2 bg-blue-500 text-white rounded hover:bg-blue-600">محاسبه اقساط وام</button>
+            <button onclick="showSection('earlyRepayment')" class="px-4 py-2 mx-2 bg-green-500 text-white rounded hover:bg-green-600">بازپرداخت زودهنگام</button>
+            <button onclick="showSection('comparison')" class="px-4 py-2 mx-2 bg-purple-500 text-white rounded hover:bg-purple-600">مقایسه وام‌ها</button>
+        </div>
+
+        <!-- بخش محاسبه اقساط وام -->
+        <div id="loanCalculator" class="section bg-white p-6 rounded-lg shadow-lg max-w-lg mx-auto">
+            <h2 class="text-lg font-semibold mb-4">محاسبه اقساط وام</h2>
+            <div class="grid gap-4">
+                <div>
+                    <input type="text" id="loanAmount" placeholder="مبلغ وام (ریال)" class="border rounded p-2 w-full" oninput="formatInput(this); convertToWords('loanAmount', 'loanAmountWords')">
+                    <p id="loanAmountWords" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <input type="number" id="interestRate" min="0" step="0.1" placeholder="نرخ سود سالیانه (%)" class="border rounded p-2">
+                <input type="number" id="installments" min="1" placeholder="تعداد اقساط (ماه)" class="border rounded p-2">
+                <button onclick="calculateLoan()" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">محاسبه</button>
+            </div>
+            <div id="loanResult" class="mt-4"></div>
+        </div>
+
+        <!-- بخش بازپرداخت زودهنگام -->
+        <div id="earlyRepayment" class="section hidden bg-white p-6 rounded-lg shadow-lg max-w-lg mx-auto">
+            <h2 class="text-lg font-semibold mb-4">بازپرداخت زودهنگام</h2>
+            <div class="grid gap-4">
+                <div>
+                    <input type="text" id="remainingBalance" placeholder="مانده وام (ریال)" class="border rounded p-2 w-full" oninput="formatInput(this); convertToWords('remainingBalance', 'remainingBalanceWords')">
+                    <p id="remainingBalanceWords" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <input type="number" id="remainingInstallments" min="1" placeholder="تعداد اقساط باقی‌مانده" class="border rounded p-2">
+                <div>
+                    <input type="text" id="prepaymentAmount" placeholder="مبلغ بازپرداخت زودهنگام (ریال)" class="border rounded p-2 w-full" oninput="formatInput(this); convertToWords('prepaymentAmount', 'prepaymentAmountWords')">
+                    <p id="prepaymentAmountWords" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <button onclick="calculateEarlyRepayment()" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">محاسبه</button>
+            </div>
+            <div id="earlyRepaymentResult" class="mt-4"></div>
+        </div>
+
+        <!-- بخش مقایسه وام‌ها -->
+        <div id="comparison" class="section hidden bg-white p-6 rounded-lg shadow-lg max-w-lg mx-auto">
+            <h2 class="text-lg font-semibold mb-4">مقایسه وام‌ها</h2>
+            <div class="grid gap-4">
+                <h3 class="font-semibold">وام اول</h3>
+                <div>
+                    <input type="text" id="loanAmount1" placeholder="مبلغ وام (ریال)" class="border rounded p-2 w-full" oninput="formatInput(this); convertToWords('loanAmount1', 'loanAmount1Words')">
+                    <p id="loanAmount1Words" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <input type="number" id="interestRate1" min="0" step="0.1" placeholder="نرخ سود سالیانه (%)" class="border rounded p-2">
+                <input type="number" id="installments1" min="1" placeholder="تعداد,img src="https://cdn.tailwindcss.com" اقساط (ماه)" class="border rounded p-2">
+                <h3 class="font-semibold">وام دوم</h3>
+                <div>
+                    <input type="text" id="loanAmount2" placeholder="مبلغ وام (ریال)" class="border rounded p-2 w-full" oninput="formatInput(this); convertToWords('loanAmount2', 'loanAmount2Words')">
+                    <p id="loanAmount2Words" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <input type="number" id="interestRate2" min="0" step="0.1" placeholder="نرخ سود سالیانه (%)" class="border rounded p-2">
+                <input type="number" id="installments2" min="1" placeholder="تعداد اقساط (ماه)" class="border rounded p-2">
+                <button onclick="compareLoans()" class="bg-purple-500 text-white p-2 rounded hover:bg-purple-600">مقایسه</button>
+            </div>
+            <div id="comparisonResult" class="mt-4"></div>
+        </div>
+
+        <!-- کپی رایت -->
+        <footer class="text-center mt-8 text-gray-600">
+            <p>© 1404 - ماشین حساب وام. تمامی حقوق محفوظ است.</p>
+        </footer>
+    </div>
+
+    <script>
+        // مدیریت نمایش بخش‌ها
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        // فرمت کردن ورودی با نقطه
+        function formatInput(input) {
+            let value = input.value.replace(/[^۰-۹0-9]/g, ''); // فقط اعداد (فارسی یا انگلیسی)
+            const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+            let isPersian = false;
+
+            for (let digit of persianDigits) {
+                if (value.includes(digit)) {
+                    isPersian = true;
+                    break;
+                }
+            }
+
+            if (isPersian) {
+                for (let i = 0; i < 10; i++) {
+                    value = value.replace(new RegExp(persianDigits[i], 'g'), i);
+                }
+            }
+
+            if (value) {
+                value = parseInt(value).toString(); // حذف صفرهای اضافی
+                value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); // اضافه کردن نقطه
+            }
+            input.value = value;
+        }
+
+        // تبدیل عدد به حروف (فارسی و انگلیسی)
+        const persianUnits = [
+            '', 'هزار', 'میلیون', 'میلیارد', 'تریلیون'
+        ];
+        const persianTens = ['', 'ده', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود'];
+        const persianHundreds = ['', 'صد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد'];
+        const persianSmall = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه', 'ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده'];
+
+        const englishUnits = ['', 'Thousand', 'Million', 'Billion', 'Trillion'];
+        const englishTens = ['', 'Ten', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const englishHundreds = ['', 'Hundred', 'Two Hundred', 'Three Hundred', 'Four Hundred', 'Five Hundred', 'Six Hundred', 'Seven Hundred', 'Eight Hundred', 'Nine Hundred'];
+        const englishSmall = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+        function numberToWordsPersian(num) {
+            if (num === 0) return 'صفر';
+            let result = '';
+            let unitIndex = 0;
+
+            while (num > 0) {
+                let chunk = num % 1000;
+                if (chunk > 0) {
+                    let chunkText = '';
+                    if (chunk < 20) {
+                        chunkText = persianSmall[chunk];
+                    } else {
+                        let ones = chunk % 10;
+                        let tens = Math.floor((chunk % 100) / 10);
+                        let hundreds = Math.floor(chunk / 100);
+                        if (hundreds > 0) chunkText += persianHundreds[hundreds] + (chunk % 100 > 0 ? ' و ' : '');
+                        if (tens > 0) chunkText += persianTens[tens] + (ones > 0 ? ' و ' : '');
+                        if (ones > 0 && chunk % 100 >= 20) chunkText += persianSmall[ones];
+                        if (chunk % 100 < 20 && chunk % 100 > 0) chunkText += persianSmall[chunk % 100];
+                    }
+                    result = chunkText + (unitIndex > 0 ? ' ' + persianUnits[unitIndex] : '') + (result ? ' و ' + result : '');
+                }
+                num = Math.floor(num / 1000);
+                unitIndex++;
+            }
+            return result + ' ریال';
+        }
+
+        function numberToWordsEnglish(num) {
+            if (num === 0) return 'Zero';
+            let result = '';
+            let unitIndex = 0;
+
+            while (num > 0) {
+                let chunk = num % 1000;
+                if (chunk > 0) {
+                    let chunkText = '';
+                    if (chunk < 20) {
+                        chunkText = englishSmall[chunk];
+                    } else {
+                        let ones = chunk % 10;
+                        let tens = Math.floor((chunk % 100) / 10);
+                        let hundreds = Math.floor(chunk / 100);
+                        if (hundreds > 0) chunkText += englishHundreds[hundreds] + (chunk % 100 > 0 ? ' ' : '');
+                        if (tens > 0) chunkText += englishTens[tens] + (ones > 0 ? ' ' : '');
+                        if (ones > 0 && chunk % 100 >= 20) chunkText += englishSmall[ones];
+                        if (chunk % 100 < 20 && chunk % 100 > 0) chunkText += englishSmall[chunk % 100];
+                    }
+                    result = chunkText + (unitIndex > 0 ? ' ' + englishUnits[unitIndex] : '') + (result ? ', ' + result : '');
+                }
+                num = Math.floor(num / 1000);
+                unitIndex++;
+            }
+            return result + ' Rials';
+        }
+
+        // تبدیل مقدار ورودی به عدد و نمایش به حروف
+        function convertToWords(inputId, outputId) {
+            const input = document.getElementById(inputId).value.trim();
+            const output = document.getElementById(outputId);
+            let number = parseInput(input);
+
+            if (isNaN(number) || number < 0) {
+                output.innerText = '';
+                return;
+            }
+
+            const persianText = numberToWordsPersian(number);
+            const englishText = numberToWordsEnglish(number);
+            output.innerText = `فارسی: ${persianText}\nانگلیسی: ${englishText}`;
+        }
+
+        // فرمت کردن اعداد به صورت خوانا با نقطه
+        function formatNumber(number) {
+            return Math.round(number).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // تبدیل مقدار ورودی به عدد معتبر
+        function parseInput(input) {
+            let cleanedInput = input.replace(/[.,]/g, '');
+            const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+            let isPersian = false;
+
+            for (let digit of persianDigits) {
+                if (cleanedInput.includes(digit)) {
+                    isPersian = true;
+                    break;
+                }
+            }
+
+            if (isPersian) {
+                for (let i = 0; i < 10; i++) {
+                    cleanedInput = cleanedInput.replace(new RegExp(persianDigits[i], 'g'), i);
+                }
+            }
+
+            return parseFloat(cleanedInput) || 0;
+        }
+
+        // محاسبه اقساط وام
+        function calculateLoan() {
+            const loanAmount = parseInput(document.getElementById('loanAmount').value);
+            const interestRate = parseFloat(document.getElementById('interestRate').value) || 0;
+            const installments = parseInt(document.getElementById('installments').value) || 0;
+
+            if (loanAmount <= 0 || interestRate < 0 || installments <= 0) {
+                document.getElementById('loanResult').innerHTML = '<p class="text-red-500">لطفاً مقادیر معتبر وارد کنید!</p>';
+                return;
+            }
+
+            const monthlyRate = interestRate / 100 / 12;
+            const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, installments)) / (Math.pow(1 + monthlyRate, installments) - 1);
+            const totalPayment = monthlyPayment * installments;
+            const totalInterest = totalPayment - loanAmount;
+
+            // جدول اقساط
+            let table = '<table><tr><th>قسط</th><th>مبلغ قسط</th><th>سود</th><th>اصل</th><th>مانده</th></tr>';
+            let remainingBalance = loanAmount;
+            for (let i = 1; i <= installments; i++) {
+                const interest = remainingBalance * monthlyRate;
+                const principal = monthlyPayment - interest;
+                remainingBalance -= principal;
+                table += `<tr><td>${i}</td><td>${formatNumber(monthlyPayment)}</td><td>${formatNumber(interest)}</td><td>${formatNumber(principal)}</td><td>${formatNumber(remainingBalance)}</td></tr>`;
+            }
+            table += '</table>';
+
+            document.getElementById('loanResult').innerHTML = `
+                <p><strong>مبلغ قسط ماهانه:</strong> ${formatNumber(monthlyPayment)} ریال</p>
+                <p><strong>کل مبلغ بازپرداخت:</strong> ${formatNumber(totalPayment)} ریال</p>
+                <p><strong>کل سود:</strong> ${formatNumber(totalInterest)} ریال</p>
+                <h3 class="font-semibold mt-4">جدول اقساط:</h3>
+                ${table}
+            `;
+        }
+
+        // محاسبه بازپرداخت زودهنگام
+        function calculateEarlyRepayment() {
+            const remainingBalance = parseInput(document.getElementById('remainingBalance').value);
+            const remainingInstallments = parseInt(document.getElementById('remainingInstallments').value) || 0;
+            const prepaymentAmount = parseInput(document.getElementById('prepaymentAmount').value);
+
+            if (remainingBalance <= 0 || remainingInstallments <= 0 || prepaymentAmount <= 0 || prepaymentAmount > remainingBalance) {
+                document.getElementById('earlyRepaymentResult').innerHTML = '<p class="text-red-500">لطفاً مقادیر معتبر وارد کنید!</p>';
+                return;
+            }
+
+            const newBalance = remainingBalance - prepaymentAmount;
+            document.getElementById('earlyRepaymentResult').innerHTML = `
+                <p><strong>مانده جدید وام:</strong> ${formatNumber(newBalance)} ریال</p>
+                <p><strong>توصیه:</strong> برای محاسبه اقساط جدید، مبلغ جدید را در بخش محاسبه اقساط وارد کنید.</p>
+            `;
+        }
+
+        // مقایسه وام‌ها
+        function calculateLoanDetails(loanAmount, interestRate, installments) {
+            const monthlyRate = interestRate / 100 / 12;
+            const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, installments)) / (Math.pow(1 + monthlyRate, installments) - 1);
+            const totalPayment = monthlyPayment * installments;
+            const totalInterest = totalPayment - loanAmount;
+            return { monthlyPayment, totalPayment, totalInterest };
+        }
+
+        function compareLoans() {
+            const loanAmount1 = parseInput(document.getElementById('loanAmount1').value);
+            const interestRate1 = parseFloat(document.getElementById('interestRate1').value) || 0;
+            const installments1 = parseInt(document.getElementById('installments1').value) || 0;
+            const loanAmount2 = parseInput(document.getElementById('loanAmount2').value);
+            const interestRate2 = parseFloat(document.getElementById('interestRate2').value) || 0;
+            const installments2 = parseInt(document.getElementById('installments2').value) || 0;
+
+            if (loanAmount1 <= 0 || interestRate1 < 0 || installments1 <= 0 || loanAmount2 <= 0 || interestRate2 < 0 || installments2 <= 0) {
+                document.getElementById('comparisonResult').innerHTML = '<p class="text-red-500">لطفاً مقادیر معتبر وارد کنید!</p>';
+                return;
+            }
+
+            // محاسبه وام اول
+            const loan1 = calculateLoanDetails(loanAmount1, interestRate1, installments1);
+
+            // محاسبه وام دوم
+            const loan2 = calculateLoanDetails(loanAmount2, interestRate2, installments2);
+
+            // مقایسه
+            const recommendation = loan1.totalInterest < loan2.totalInterest ? 'وام اول مقرون‌به‌صرفه‌تر است.' : 'وام دوم مقرون‌به‌صرفه‌تر است.';
+
+            document.getElementById('comparisonResult').innerHTML = `
+                <h3 class="font-semibold">وام اول:</h3>
+                <p><strong>مبلغ قسط ماهانه:</strong> ${formatNumber(loan1.monthlyPayment)} ریال</p>
+                <p><strong>کل مبلغ بازپرداخت:</strong> ${formatNumber(loan1.totalPayment)} ریال</p>
+                <p><strong>کل سود:</strong> ${formatNumber(loan1.totalInterest)} ریال</p>
+                <h3 class="font-semibold mt-4">وام دوم:</h3>
+                <p><strong>مبلغ قسط ماهانه:</strong> ${formatNumber(loan2.monthlyPayment)} ریال</p>
+                <p><strong>کل مبلغ بازپرداخت:</strong> ${formatNumber(loan2.totalPayment)} ریال</p>
+                <p><strong>کل سود:</strong> ${formatNumber(loan2.totalInterest)} ریال</p>
+                <p class="mt-4 font-semibold">${recommendation}</p>
+            `;
+        }
+
+        // نمایش پیش‌فرض بخش محاسبه وام
+        showSection('loanCalculator');
+    </script>
+</body>
+</html>
