@@ -1,243 +1,233 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="مجموعه‌ای از ابزارهای کاربردی برای کارهای مختلف - ابزارکیت هوید">
-    <meta name="keywords" content="ابزارکیت, هوید, ابزارهای آنلاین, تولید QR, رمزگذاری متن, محاسبات وام, تولید پسورد">
-    <meta name="author" content="Hawid.ir">
-    <meta name="robots" content="index, follow">
-    <meta property="og:title" content="Toolkit - Hawid.ir">
-    <meta property="og:description" content="مجموعه‌ای از ابزارهای کاربردی برای کارهای مختلف - ابزارکیت هوید">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://toolkit.hawid.ir">
-    <meta property="og:image" content="https://toolkit.hawid.ir/favicon.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <title>ابزارکیت - هوید</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/vazir-font@32.102.0/dist/font-face.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.1/css/all.min.css" integrity="sha256-2XFplPlrFClt0bIdPgpz8H7ojnk10H69xRqd9+uTShA=" crossorigin="anonymous" />
-    <link rel="icon" href="https://toolkit.hawid.ir/favicon.ico" sizes="32x32" />
-    <link rel="icon" href="https://toolkit.hawid.ir/favicon.png" sizes="192x192" />
-    <link rel="apple-touch-icon" href="https://toolkit.hawid.ir/favicon.svg" />
-    <meta name="msapplication-TileImage" content="https://toolkit.hawid.ir/favicon.svg" />
-    <style>
-      body {
-        font-family: 'Vazir', 'Ubuntu', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #f6f9fc;
-      }
-      .card:hover {
-        transform: translateY(-0.25rem);
-        box-shadow: 0 8px 16px rgba(35, 38, 45, 0.15);
-      }
-      .icon-circle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-      }
-    </style>
-  </head>
-  <body class="mt-6">
-    <section class="py-8 md:py-12">
-      <div class="container mx-auto px-4">
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-right">ابزارکیت هوید</h1>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <div class="mb-4">
-            <span class="inline-block bg-blue-100 text-blue-600 text-xs font-medium uppercase tracking-wider px-2 py-1 rounded">ابزارکیت</span>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/overtime" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 512 512">
-                  <path d="M68.083 336.463c8.335 91.612 83.915 165.028 175.806 170.775 111.286 6.87 200.813-81.645 200.813-188.313 0-50.489-20.59-97.447-54.316-131.919l7.037-7.037c4.343-4.343 4.343-11.378 0-15.721s-11.378-4.343-15.721 0l-7.83 7.83c-22.225-17.96-48.562-31.172-77.709-37.521-6.811-1.44-13.521 3.93-13.521 10.864 0 5.407 3.887 9.909 9.004 10.908 75.819 16.619 130.821 84.961 130.821 162.596 0 95.896-80.55 172.122-177.188 166.121-81.045-5.067-147.7-69.811-155.054-150.595-7.622-83.839 48.405-160.396 130.322-178.093 6-1.296 9.815-7.209 8.519-13.209-1.288-6-7.209-9.829-13.21-8.519-29.379 6.344-55.808 19.377-77.959 37.219l-7.602-7.6c-4.343-4.343-11.382-4.343-15.725 0-4.339 4.343-4.339 11.385.004 15.721l6.852 6.85c-37.643 38.452-58.536 92.549-53.343 149.643z" fill="currentColor"></path>
-                  <path d="M116.716 318.961c0 76.803 62.479 139.29 139.282 139.29s139.282-62.486 139.282-139.29-62.479-139.282-139.282-139.282-139.282 62.479-139.282 139.282zm139.282-117.047c64.542 0 117.047 52.505 117.047 117.047S320.54 436.015 255.998 436.015s-117.047-52.512-117.047-117.054 52.505-117.047 117.047-117.047zM317.847 66.193c0-34.077-27.765-61.806-61.9-61.806-34.077 0-61.799 27.729-61.799 61.806 0 34.128 27.722 61.893 61.799 61.893 34.135 0 61.9-27.765 61.9-61.893zm-61.9 39.657c-21.816 0-39.563-17.791-39.563-39.657 0-21.823 17.748-39.571 39.563-39.571 21.873 0 39.665 17.748 39.665 39.571 0 21.866-17.791 39.657-39.665 39.657z" fill="currentColor"></path>
-                  <path d="M255.998 330.079h50.609c6.138 0 11.118-4.98 11.118-11.118s-4.98-11.118-11.118-11.118h-39.491v-64.846c0-6.138-4.98-11.118-11.118-11.118s-11.118 4.98-11.118 11.118v75.964c0 6.138 4.98 11.118 11.118 11.118z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">اضافه‌کاری</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Over Time</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/qr" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24">
-                  <g fill="currentColor">
-                    <g fill-rule="evenodd" clip-rule="evenodd">
-                      <path d="M2 3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1zm3 3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1zM2 14a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1zm4 2a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zM14 2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm2 4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1z"></path>
-                    </g>
-                    <path d="M14 13a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1v-1a1 1 0 0 0-1-1zM14 19a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zM18 14a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1zM19 19a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1z"></path>
-                  </g>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">تولید QR</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">QR Code</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/loremipsum" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 340.111 340.111">
-                  <path d="M340.111 76.316V65.175h-47.905v11.141h18.382v187.478h-18.382v11.141h47.905v-11.141h-18.382V76.316z" fill="currentColor"></path>
-                  <path d="m2.067 229.59 56.068-126.615c3.909-8.731 11.03-14.018 20.684-14.018h2.068c9.648 0 16.544 5.286 20.449 14.018l56.07 126.615c1.149 2.528 1.84 4.825 1.84 7.124 0 9.421-7.354 17.004-16.776 17.004-8.272 0-13.788-4.825-17.004-12.18l-10.799-25.275H43.891l-11.26 26.426c-2.988 6.893-8.961 11.029-16.315 11.029C7.121 253.718 0 246.365 0 237.173c0-2.528.918-5.055 2.067-7.583zm99.501-44.579-22.291-53.082-22.289 53.082h44.58zM176.011 216.951v-.46c0-26.885 20.452-39.294 49.635-39.294 12.41 0 21.373 2.068 30.105 5.056v-2.068c0-14.478-8.963-22.519-26.427-22.519-9.651 0-17.464 1.378-24.128 3.447-2.067.689-3.447.918-5.058.918-8.04 0-14.474-6.204-14.474-14.246 0-6.205 3.905-11.49 9.419-13.559 11.03-4.136 22.981-6.434 39.296-6.434 19.071 0 32.86 5.055 41.593 13.787 9.191 9.191 13.327 22.75 13.327 39.295v56.068c0 9.423-7.583 16.775-17.005 16.775-10.111 0-16.774-7.123-16.774-14.477v-.23c-8.502 9.421-20.224 15.625-37.226 15.625-23.211.002-42.283-13.324-42.283-37.684zm80.197-8.043v-6.204c-5.974-2.757-13.787-4.596-22.289-4.596-14.938 0-24.128 5.975-24.128 17.004v.46c0 9.422 7.813 14.936 19.072 14.936 16.315.001 27.345-8.96 27.345-21.6z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">لورم ایپسوم</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Lorem Ipsum</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/palette/" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 512 512">
-                  <path d="M106 361c-24.813 0-45 20.187-45 45s20.187 45 45 45 45-20.187 45-45-20.187-45-45-45zm0 60c-8.271 0-15-6.729-15-15s6.729-15 15-15 15 6.729 15 15-6.729 15-15 15z" fill="currentColor"></path>
-                  <path d="M484.927 304.736c10.233-13.848 12.118-33.159 2.813-49.274l-59.969-104.87c-10.374-17.968-32.25-26.167-51.764-20.951 4.155-18.677-3.997-38.714-21.423-48.775L250.667 20.87c-14.841-8.57-32.586-7.692-46.233.749C196.525 8.666 182.256 0 166 0H45C20.187 0 0 20.187 0 45v422c0 24.813 20.187 45 45 45h422c24.813 0 45-20.187 45-45V346c0-18.443-11.157-34.323-27.073-41.264zM181 467c0 8.271-6.729 15-15 15H45c-8.271 0-15-6.729-15-15V331h151v136zm0-166H30V180h151v121zm0-151H30V45c0-8.271 6.729-15 15-15h121c8.271 0 15 6.729 15 15v105zm30-90.432 4.171-7.225c4.138-7.165 13.332-9.629 20.496-5.492l103.917 59.996c7.165 4.137 9.628 13.331 5.48 20.516l-17.332 30.127a14.99 14.99 0 0 0-1.152 2.002L211 360.395V59.568zm0 360.987 140.222-243.737 28.993-16.739c7.35-4.243 17.431-1.666 21.545 5.459l59.969 104.87c4.148 7.184 1.729 16.394-5.529 20.584L211 432.945v-12.39zM482 467c0 8.271-6.729 15-15 15H208.42a44.793 44.793 0 0 0 2.565-14.381L446.97 331H467c8.271 0 15 6.729 15 15v121z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">تولید پالت رنگی</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Color Palette Generator</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/virastar/" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 32 32">
-                  <path d="M27 8h-5V7a2 2 0 0 1 2-2 1 1 0 0 0 0-2 4 4 0 0 0-3 1.36A4 4 0 0 0 18 3a1 1 0 0 0 0 2 2 2 0 0 1 2 2v1H5a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h15v1a2 2 0 0 1-2 2 1 1 0 1 0 0 2 4 4 0 0 0 3-1.36A4 4 0 0 0 24 29a1 1 0 0 0 0-2 2 2 0 0 1-2-2v-1h5a3 3 0 0 0 3-3V11a3 3 0 0 0-3-3zM5 22a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h15v12zm23-1a1 1 0 0 1-1 1h-5V10h5a1 1 0 0 1 1 1z" fill="currentColor"></path>
-                  <path d="M11 12H7a1 1 0 0 0 0 2h1v5a1 1 0 0 0 2 0v-5h1a1 1 0 0 0 0-2z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">ویراستار متن</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Text Virastar</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/notepad/" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 32 32">
-                  <path d="M21.987 6.577H8.976a.9.9 0 0 0 0 1.8h13.012a.9.9 0 1 0-.001-1.8zM22.887 12.551a.9.9 0 0 0-.9-.9H8.976a.9.9 0 0 0 0 1.8h13.012a.9.9 0 0 0 .899-.9zM8.976 16.726a.9.9 0 0 0 0 1.8h6.554a.9.9 0 0 0 0-1.8z" fill="currentColor"></path>
-                  <path d="M11.313 29.1H5.744a1.394 1.394 0 0 1-1.392-1.392V4.292c0-.768.625-1.392 1.392-1.392H25.22c.767 0 1.392.625 1.392 1.392v8.545a.9.9 0 0 0 1.8 0V4.292A3.195 3.195 0 0 0 25.221 1.1H5.744a3.196 3.196 0 0 0-3.192 3.192v23.416A3.196 3.196 0 0 0 5.744 30.9h5.569a.9.9 0 0 0 0-1.8z" fill="currentColor"></path>
-                  <path d="M28.467 16.914a3.353 3.353 0 0 0-4.738 0l-8.275 8.275a1.77 1.77 0 0 0-.496.959l-.452 2.683a1.774 1.774 0 0 0 2.043 2.044l2.681-.453c.366-.061.699-.232.961-.495l8.275-8.275a3.354 3.354 0 0 0 .001-4.738zm-9.534 11.733-2.652.483.445-2.669 5.955-5.955 2.194 2.194zm8.261-8.268-1.047 1.048-2.194-2.194 1.048-1.048c.302-.302.7-.453 1.097-.453a1.55 1.55 0 0 1 1.096 2.647z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">نوت‌پد</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Notepad</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/pdf/" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 682.667 682.667">
-                  <g>
-                    <defs>
-                      <clipPath id="a">
-                        <path d="M0 512h512V0H0Z" fill="currentColor"></path>
-                      </clipPath>
-                    </defs>
-                    <path d="M0 0v-113.993" transform="matrix(1.33333 0 0 -1.33333 128 298.667)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                    <g clip-path="url(#a)" transform="matrix(1.33333 0 0 -1.33333 0 682.667)">
-                      <path d="M0 0c0-17.767-15.033-32.169-32.799-32.169-8.811 0-31.519-.142-31.519-.142S-64.46-8.955-64.46 0c0 7.355-.08 32.169-.08 32.169h31.741C-15.033 32.169 0 17.767 0 0Z" transform="translate(160.54 255.831)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                      <path d="M0 0c0-30.479-16.917-54.599-43.755-55.067-8.934-.157-32.023-.244-32.023-.244s-.144 40.069-.144 55.433c0 12.618-.08 55.189-.08 55.189h31.33C-15.234 55.311 0 30.479 0 0Z" transform="translate(300.002 232.69)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                      <path d="M0 0h-45.863v-113.158" transform="translate(413.863 289.158)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                      <path d="M0 0h42.22" transform="translate(368 233.65)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                      <path d="M0 0v115c0 16.5 13.5 30 30 30h199.695a60 60 0 0 0 43.542-18.72l62.305-65.72A59.999 59.999 0 0 0 352 19.279V0" transform="translate(80 352)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                      <path d="M0 0v-67c0-16.5-13.5-30-30-30h-292c-16.5 0-30 13.5-30 30V0" transform="translate(432 112)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                      <path d="M0 0h-404c-16.5 0-30 13.5-30 30v180c0 16.5 13.5 30 30 30H0c16.5 0 30-13.5 30-30V30C30 13.5 16.5 0 0 0Z" transform="translate(458 112)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                    </g>
-                  </g>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">ادغام PDF</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">PDF Merge</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/compress/" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
-                  <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5L14 4.5ZM1.6 11.85H0v3.999h.791v-1.342h.803c.287 0 .531-.057.732-.173.203-.117.358-.275.463-.474a1.42 1.42 0 0 0 .161-.677c0-.25-.053-.476-.158-.677a1.176 1.176 0 0 0-.46-.477c-.2-.12-.443-.179-.732-.179Zm.545 1.333a.795.795 0 0 1-.085.38.574.574 0 0 1-.238.241.794.794 0 0 1-.375.082H.788V12.48h.66c.218 0 .389.06.512.181.123.122.185.296.185.522Zm1.217-1.333v3.999h1.46c.401 0 .734-.08.998-.237a1.45 1.45 0 0 0 .595-.689c.13-.3.196-.662.196-1.084 0-.42-.065-.778-.196-1.075a1.426 1.426 0 0 0-.589-.68c-.264-.156-.599-.234-1.005-.234H3.362Zm.791.645h.563c.248 0 .45.05.609.152a.89.89 0 0 1 .354.454c.079.201.118.452.118.753a2.3 2.3 0 0 1-.068.592 1.14 1.14 0 0 1-.196.422.8.8 0 0 1-.334.252 1.298 1.298 0 0 1-.483.082h-.563v-2.707Zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638H7.896Z"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">فشرده‌سازی PDF</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">PDF Compress</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/password-generator" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24">
-                  <path d="M11.77 19.5a.75.75 0 0 1-.75.75H7.5a12.344 12.344 0 0 1-1.767-.1C2.406 19.786 1.75 17.8 1.75 14.5v-5c0-3.3.656-5.286 4.008-5.655A12.235 12.235 0 0 1 7.5 3.75h3.46a.75.75 0 0 1 0 1.5H7.5a11.066 11.066 0 0 0-1.554.082c-2.029.225-2.7.857-2.7 4.168v5c0 3.311.667 3.943 2.672 4.165a11.14 11.14 0 0 0 1.582.085h3.52a.75.75 0 0 1 .75.75zm10.48-10v5c0 3.3-.656 5.286-4.008 5.655a12.235 12.235 0 0 1-1.742.095h-.75V22a.75.75 0 0 1-1.5 0V2a.75.75 0 0 1 1.5 0v1.75h.75a12.344 12.344 0 0 1 1.767.1c3.327.364 3.983 2.35 3.983 5.65zm-1.5 0c0-3.311-.667-3.943-2.672-4.165A11.14 11.14 0 0 0 16.5 5.25h-.75v13.5h.75a11.066 11.066 0 0 0 1.554-.082c2.029-.225 2.7-.857 2.7-4.168zM5.99 11.29a1.05 1.05 0 0 0-.29.71.986.986 0 0 0 .07.38.956.956 0 0 0 .549.54.945.945 0 0 0 .761 0 1.155 1.155 0 0 0 .33-.21 1.191 1.191 0 0 0 .21-.33A1 1 0 0 0 7.7 12a1 1 0 0 0-1.71-.71zm4 0a1.05 1.05 0 0 0-.29.71 1.189 1.189 0 0 0 .07.38 1.45 1.45 0 0 0 .22.33 1.164 1.164 0 0 0 .329.21.945.945 0 0 0 .761 0 1.155 1.155 0 0 0 .33-.21 1.191 1.191 0 0 0 .21-.33 1 1 0 0 0 .08-.38 1 1 0 0 0-1.71-.71z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">تولید رمز</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Password Generator</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/textencoder" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 512 512">
-                  <path d="M60 486c-22.091 0-40-17.909-40-40v-20c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM256 306c-22.091 0-40-17.909-40-40v-20c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM452 486c-22.091 0-40-17.909-40-40v-20c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM216 386h40v100M216 486h80M20 206h40v100M20 306h80M412 206h40v100M412 306h80M60 126c-22.091 0-40-17.909-40-40V66c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM452 126c-22.091 0-40-17.909-40-40V66c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM216 26h40v100M216 126h80" fill="none" stroke="currentColor" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">رمزگذاری متن</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Text Encryption</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/base64" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 512 512">
-                  <path d="M83.33 484.135A39.512 39.512 0 0 0 111.713 496h211.031a39.736 39.736 0 0 0 28.284-11.716l77.255-77.255A39.736 39.736 0 0 0 440 378.745V192a8 8 0 0 0-8-8h-8v-24h-16v24h-16v-24a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8v24h-16v-48h-16v48h-16v-48h-16v48h-16v-48a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8v48h-16v-16h-16v16h-16v-16h-16v16h-16v-56h-16v56h-16v-24H88v24h-8a8 8 0 0 0-8 8l.004 263.852a39.205 39.205 0 0 0 11.325 28.283zM360 168h16v16h-16zm-128-24h16v40h-16zm192 56v178.745a23.845 23.845 0 0 1-7.03 16.97L344 468.688V424a24.027 24.027 0 0 1 24-24h24v-16h-24a40.045 40.045 0 0 0-40 40v55.419a24.19 24.19 0 0 1-5.255.581h-211.03a23.63 23.63 0 0 1-16.98-7.086 23.326 23.326 0 0 1-6.732-16.87l.001-.13L88 200z" fill="currentColor"></path>
-                  <path d="M152 144a8 8 0 0 0 8 8h32a8 8 0 0 0 8-8V88a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8zm16-48h16v40h-16zM120 16h16v96h-16zM88 16h16v32H88zM88 64h16v80H88zM408 16h16v32h-16zM408 64h16v80h-16zM152 16h16v48h-16zM184 16h16v16h-16zM184 48h16v16h-16zM216 72h16v40h-16zM248 16h16v56h-16zM248 88h16v24h-16zM216 16h16v40h-16zM280 112a8 8 0 0 0 8 8h32a8 8 0 0 0 8-8V56a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8zm16-48h16v40h-16zM280 16h16v16h-16zM312 16h16v16h-16zM344 64h16v72h-16zM376 16h16v80h-16zM376 112h16v24h-16zM344 16h16v32h-16zM168 240h24v16h-24zM208 240h112v16H208zM336 240h48v16h-48zM128 288h48v16h-48zM192 288h128v16H192zM128 384h88v16h-88zM232 384h80v16h-80zM128 432h24v16h-24zM280 432h32v16h-32zM168 432h96v16h-96zM336 288h48v16h-48zM128 336h16v16h-16zM160 336h112v16H160zM288 336h96v16h-96z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">رمزگذار/رمزگشای Base64</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Base64 Encoder/Decoder</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/time-calculation" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 800 800">
-                  <path d="M483.3 508.3c-6.4 0-12.8-2.4-17.7-7.3l-83.3-83.3c-4.7-4.7-7.3-11-7.3-17.7V266.7c0-13.8 11.2-25 25-25s25 11.2 25 25v123l76 76c9.8 9.8 9.8 25.6 0 35.4-4.9 4.8-11.3 7.2-17.7 7.2z" fill="currentColor"></path>
-                  <path d="M400 758.3c-80.8 0-139.2 0-186.2-6.3-52.9-7.1-88.6-22.5-116-49.8-27.3-27.3-42.7-63.1-49.8-116-6.3-47-6.3-105.4-6.3-186.2s0-139.2 6.3-186.2c7.1-52.9 22.5-88.6 49.8-116s63.1-42.7 116-49.8c47-6.3 105.4-6.3 186.2-6.3s139.2 0 186.2 6.3c52.9 7.1 88.6 22.5 116 49.8 40.1 40.1 50.7 96 54.3 167.6.7 13.8-9.9 25.5-23.7 26.2s-25.5-9.9-26.2-23.7c-3.6-72.9-14.4-109.5-39.7-134.8C625.3 91.7 550 91.7 400 91.7s-225.3 0-266.8 41.5S91.7 250 91.7 400s0 225.3 41.5 266.8S250 708.3 400 708.3s225.3 0 266.8-41.5S708.3 550 708.3 400c0-13.8 11.2-25 25-25s25 11.2 25 25c0 80.8 0 139.2-6.3 186.2-7.1 52.9-22.5 88.6-49.8 116-27.3 27.3-63.1 42.7-116 49.8-47 6.3-105.4 6.3-186.2 6.3z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">محاسبه زمان</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Time Calculation</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="https://toolkit.hawid.ir/loan-calculations" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 511.983 511.983">
-                  <path d="M282.895 216.928c7.262 0 13.169 4.947 13.169 11.027 0 5.522 4.478 10 10 10s10-4.478 10-10c0-13.849-9.752-25.606-23.169-29.583v-1.39c0-5.522-4.478-10-10-10s-10 4.478-10 10v1.39c-13.417 3.978-23.168 15.734-23.168 29.583 0 17.108 14.879 31.026 33.168 31.026 7.262 0 13.169 4.947 13.169 11.027s-5.907 11.026-13.169 11.026c-7.261 0-13.168-4.946-13.168-11.026 0-5.522-4.478-10-10-10s-10 4.478-10 10c0 13.849 9.751 25.605 23.168 29.582v1.39c0 5.522 4.478 10 10 10s10-4.478 10-10v-1.39c13.417-3.977 23.169-15.733 23.169-29.582 0-17.108-14.88-31.027-33.169-31.027-7.261 0-13.168-4.946-13.168-11.026s5.907-11.027 13.168-11.027z" fill="currentColor"></path>
-                  <path d="M510.478 334.046a38.183 38.183 0 0 0-28.795-26.813c-8.863-1.887-18.081-.51-25.953 3.674 4.558-28.345 2.164-57.666-7.215-84.997-1.793-5.224-7.482-8.001-12.705-6.213-5.224 1.793-8.005 7.481-6.213 12.705 11.078 32.277 11.168 67.685.315 100.001l-79.691 70.777a80.362 80.362 0 0 1-16.04 11.074 38.43 38.43 0 0 0-.436-20.09 38.462 38.462 0 0 0-20.244-23.766l-70.596-33.813c-30.864-14.783-66.988-16.493-99.11-4.7l-7.176 2.635c-19.918-56.267-6.054-118.668 36.6-161.321l70.598-70.597h78.157l59.817 59.817c3.906 3.904 10.236 3.904 14.143 0 3.905-3.905 3.905-10.237 0-14.143L338.78 91.125l20.661-59.458c2.77-7.971-.289-16.667-7.439-21.149-7.148-4.481-16.31-3.442-22.277 2.522l-.123.123c-4.133 4.135-10.861 4.135-14.994 0-17.551-17.549-46.106-17.549-63.657 0-2.002 2.003-4.665 3.105-7.497 3.105s-5.495-1.103-7.497-3.105c-5.973-5.973-15.14-7.007-22.294-2.512-7.153 4.494-10.2 13.202-7.409 21.176l20.751 59.304-67.928 67.927c-25.139 25.14-41.85 56.836-48.324 91.661-5.679 30.54-3.219 61.681 7.076 90.702l-15.765 5.788c-5.246-6.82-13.481-11.228-22.73-11.228H28.667C12.86 335.982 0 348.842 0 364.648v118.666c0 15.807 12.86 28.667 28.667 28.667h263.564c41.398 0 80.547-15.89 110.234-44.743l97.919-95.165a38.18 38.18 0 0 0 10.094-38.027zM243.453 36.269c8.174 0 15.859-3.183 21.64-8.963 9.752-9.752 25.62-9.752 35.372 0 5.78 5.78 13.466 8.963 21.64 8.963 5.804 0 11.36-1.604 16.164-4.604l-17.7 50.938H245.21l-17.798-50.862c4.776 2.95 10.286 4.528 16.041 4.528zM20 483.315V364.648c0-4.779 3.888-8.667 8.667-8.667h50.666c4.779 0 8.667 3.888 8.667 8.667v118.666c0 4.779-3.888 8.667-8.667 8.667H28.667c-4.779.001-8.667-3.887-8.667-8.666zm466.445-125.583-97.919 95.165c-25.934 25.204-60.132 39.085-96.295 39.085H106.657a28.552 28.552 0 0 0 1.343-8.667V366.336l42.688-15.674c27.087-9.945 57.552-8.503 83.578 3.963l70.596 33.813c4.761 2.28 8.206 6.325 9.7 11.389s.797 10.333-1.964 14.833a18.375 18.375 0 0 1-21.263 7.914l-93.786-29.824c-5.262-1.672-10.886 1.236-12.561 6.5-1.673 5.263 1.236 10.887 6.5 12.561l93.786 29.823a38.505 38.505 0 0 0 11.679 1.818c.468 0 .934-.028 1.4-.045 24.051-.346 47.136-9.274 65.147-25.271l98.107-87.134a18.324 18.324 0 0 1 15.913-4.205c6.703 1.426 11.839 6.208 13.738 12.793 1.902 6.583.102 13.365-4.813 18.142z" fill="currentColor"></path>
-                  <path d="M418.739 198.99c2.63 0 5.21-1.06 7.069-2.93a10.06 10.06 0 0 0 2.931-7.07c0-2.63-1.07-5.2-2.931-7.07a10.076 10.076 0 0 0-7.069-2.93c-2.631 0-5.2 1.07-7.07 2.93a10.093 10.093 0 0 0-2.93 7.07c0 2.64 1.069 5.21 2.93 7.07a10.025 10.025 0 0 0 7.07 2.93z" fill="currentColor"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">محاسبات وام</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Loan Calculations</p>
-            </a>
-          </div>
-          <div class="mb-4">
-            <a href="http://lut.derhami.com/" class="block bg-white border border-gray-100 rounded-lg p-4 text-center transition-all duration-300 card">
-              <span class="icon-circle w-12 h-12 bg-blue-100 text-blue-600 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M6.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"></path>
-                  <path d="M14 14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5V14zM4 1a1 1 0 0 0-1 1v10l2.224-2.224a.5.5 0 0 1 .61-.075L8 11l2.157-3.02a.5.5 0 0 1 .76-.063L13 10V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4z"></path>
-                </svg>
-              </span>
-              <h3 class="text-lg font-medium text-gray-800">سازنده LUT آنلاین</h3>
-              <p class="text-sm text-gray-500 font-ubuntu">Lut Online Maker</p>
-            </a>
-          </div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="مجموعه‌ای از ابزارهای کاربردی برای کارهای مختلف - ابزارکیت هوید">
+  <meta name="keywords" content="ابزارکیت, هوید, ابزارهای آنلاین, تولید QR, رمزگذاری متن, محاسبات وام, تولید پسورد">
+  <meta name="author" content="Hawid.ir">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Toolkit - Hawid.ir">
+  <meta property="og:description" content="مجموعه‌ای از ابزارهای کاربردی برای کارهای مختلف - ابزارکیت هوید">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://toolkit.hawid.ir">
+  <meta property="og:image" content="https://toolkit.hawid.ir/favicon.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>ابزارکیت - هوید</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@6/babel.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vazir-font@32.102.0/dist/font-face.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Ubuntu', sans-serif;
+      background: #f6f9fc;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+    .icon-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+    .icon-circle:hover {
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      transform: scale(1.15);
+    }
+    .featured {
+      border: 3px solid #3b82f6;
+      box-shadow: 0 6px 14px rgba(59, 130, 246, 0.4);
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const tools = [
+      {
+        name: "Over Time",
+        url: "https://toolkit.hawid.ir/overtime",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 512 512"><path d="M68.083 336.463c8.335 91.612 83.915 165.028 175.806 170.775 111.286 6.87 200.813-81.645 200.813-188.313 0-50.489-20.59-97.447-54.316-131.919l7.037-7.037c4.343-4.343 4.343-11.378 0-15.721s-11.378-4.343-15.721 0l-7.83 7.83c-22.225-17.96-48.562-31.172-77.709-37.521-6.811-1.44-13.521 3.93-13.521 10.864 0 5.407 3.887 9.909 9.004 10.908 75.819 16.619 130.821 84.961 130.821 162.596 0 95.896-80.55 172.122-177.188 166.121-81.045-5.067-147.7-69.811-155.054-150.595-7.622-83.839 48.405-160.396 130.322-178.093 6-1.296 9.815-7.209 8.519-13.209-1.288-6-7.209-9.829-13.21-8.519-29.379 6.344-55.808 19.377-77.959 37.219l-7.602-7.6c-4.343-4.343-11.382-4.343-15.725 0-4.339 4.343-4.339 11.385.004 15.721l6.852 6.85c-37.643 38.452-58.536 92.549-53.343 149.643z" fill="currentColor"></path><path d="M116.716 318.961c0 76.803 62.479 139.29 139.282 139.29s139.282-62.486 139.282-139.29-62.479-139.282-139.282-139.282-139.282 62.479-139.282 139.282zm139.282-117.047c64.542 0 117.047 52.505 117.047 117.047S320.54 436.015 255.998 436.015s-117.047-52.512-117.047-117.054 52.505-117.047 117.047-117.047zM317.847 66.193c0-34.077-27.765-61.806-61.9-61.806-34.077 0-61.799 27.729-61.799 61.806 0 34.128 27.722 61.893 61.799 61.893 34.135 0 61.9-27.765 61.9-61.893zm-61.9 39.657c-21.816 0-39.563-17.791-39.563-39.657 0-21.823 17.748-39.571 39.563-39.571 21.873 0 39.665 17.748 39.665 39.571 0 21.866-17.791 39.657-39.665 39.657z" fill="currentColor"></path><path d="M255.998 330.079h50.609c6.138 0 11.118-4.98 11.118-11.118s-4.98-11.118-11.118-11.118h-39.491v-64.846c0-6.138-4.98-11.118-11.118-11.118s-11.118 4.98-11.118 11.118v75.964c0 6.138 4.98 11.118 11.118 11.118z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "QR Code",
+        url: "https://toolkit.hawid.ir/qr",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 24 24"><g fill="currentColor"><g fill-rule="evenodd" clip-rule="evenodd"><path d="M2 3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1zm3 3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1zM2 14a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1zm4 2a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zM14 2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm2 4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1z"></path></g><path d="M14 13a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1v2a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1v-1a1 1 0 0 0-1-1zM14 19a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1zM18 14a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1zM19 19a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1z"></path></g></svg>`,
+        featured: true,
+      },
+      {
+        name: "Password Generator",
+        url: "https://toolkit.hawid.ir/password-generator",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 24 24"><path d="M11.77 19.5a.75.75 0 0 1-.75.75H7.5a12.344 12.344 0 0 1-1.767-.1C2.406 19.786 1.75 17.8 1.75 14.5v-5c0-3.3.656-5.286 4.008-5.655A12.235 12.235 0 0 1 7.5 3.75h3.46a.75.75 0 0 1 0 1.5H7.5a11.066 11.066 0 0 0-1.554.082c-2.029.225-2.7.857-2.7 4.168v5c0 3.311.667 3.943 2.672 4.165a11.14 11.14 0 0 0 1.582.085h3.52a.75.75 0 0 1 .75.75zm10.48-10v5c0 3.3-.656 5.286-4.008 5.655a12.235 12.235 0 0 1-1.742.095h-.75V22a.75.75 0 0 1-1.5 0V2a.75.75 0 0 1 1.5 0v1.75h.75a12.344 12.344 0 0 1 1.767.1c3.327.364 3.983 2.35 3.983 5.65zm-1.5 0c0-3.311-.667-3.943-2.672-4.165A11.14 11.14 0 0 0 16.5 5.25h-.75v13.5h.75a11.066 11.066 0 0 0 1.554-.082c2.029-.225 2.7-.857 2.7-4.168zM5.99 11.29a1.05 1.05 0 0 0-.29.71.986.986 0 0 0 .07.38.956.956 0 0 0 .549.54.945.945 0 0 0 .761 0 1.155 1.155 0 0 0 .33-.21 1.191 1.191 0 0 0 .21-.33A1 1 0 0 0 7.7 12a1 1 0 0 0-1.71-.71zm4 0a1.05 1.05 0 0 0-.29.71 1.189 1.189 0 0 0 .07.38 1.45 1.45 0 0 0 .22.33 1.164 1.164 0 0 0 .329.21.945.945 0 0 0 .761 0 1.155 1.155 0 0 0 .33-.21 1.191 1.191 0 0 0 .21-.33 1 1 0 0 0 .08-.38 1 1 0 0 0-1.71-.71z" fill="currentColor"></path></svg>`,
+        featured: true,
+      },
+      {
+        name: "Lorem Ipsum",
+        url: "https://toolkit.hawid.ir/loremipsum",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 340.111 340.111"><path d="M340.111 76.316V65.175h-47.905v11.141h18.382v187.478h-18.382v11.141h47.905v-11.141h-18.382V76.316z" fill="currentColor"></path><path d="m2.067 229.59 56.068-126.615c3.909-8.731 11.03-14.018 20.684-14.018h2.068c9.648 0 16.544 5.286 20.449 14.018l56.07 126.615c1.149 2.528 1.84 4.825 1.84 7.124 0 9.421-7.354 17.004-16.776 17.004-8.272 0-13.788-4.825-17.004-12.18l-10.799-25.275H43.891l-11.26 26.426c-2.988 6.893-8.961 11.029-16.315 11.029C7.121 253.718 0 246.365 0 237.173c0-2.528.918-5.055 2.067-7.583zm99.501-44.579-22.291-53.082-22.289 53.082h44.58zM176.011 216.951v-.46c0-26.885 20.452-39.294 49.635-39.294 12.41 0 21.373 2.068 30.105 5.056v-2.068c0-14.478-8.963-22.519-26.427-22.519-9.651 0-17.464 1.378-24.128 3.447-2.067.689-3.447.918-5.058.918-8.04 0-14.474-6.204-14.474-14.246 0-6.205 3.905-11.49 9.419-13.559 11.03-4.136 22.981-6.434 39.296-6.434 19.071 0 32.86 5.055 41.593 13.787 9.191 9.191 13.327 22.75 13.327 39.295v56.068c0 9.423-7.583 16.775-17.005 16.775-10.111 0-16.774-7.123-16.774-14.477v-.23c-8.502 9.421-20.224 15.625-37.226 15.625-23.211.002-42.283-13.324-42.283-37.684zm80.197-8.043v-6.204c-5.974-2.757-13.787-4.596-22.289-4.596-14.938 0-24.128 5.975-24.128 17.004v.46c0 9.422 7.813 14.936 19.072 14.936 16.315.001 27.345-8.96 27.345-21.6z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "Color Palette Generator",
+        url: "https://toolkit.hawid.ir/palette/",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 512 512"><path d="M106 361c-24.813 0-45 20.187-45 45s20.187 45 45 45 45-20.187 45-45-20.187-45-45-45zm0 60c-8.271 0-15-6.729-15-15s6.729-15 15-15 15 6.729 15 15-6.729 15-15 15z" fill="currentColor"></path><path d="M484.927 304.736c10.233-13.848 12.118-33.159 2.813-49.274l-59.969-104.87c-10.374-17.968-32.25-26.167-51.764-20.951 4.155-18.677-3.997-38.714-21.423-48.775L250.667 20.87c-14.841-8.57-32.586-7.692-46.233.749C196.525 8.666 182.256 0 166 0H45C20.187 0 0 20.187 0 45v422c0 24.813 20.187 45 45 45h422c24.813 0 45-20.187 45-45V346c0-18.443-11.157-34.323-27.073-41.264zM181 467c0 8.271-6.729 15-15 15H45c-8.271 0-15-6.729-15-15V331h151v136zm0-166H30V180h151v121zm0-151H30V45c0-8.271 6.729-15 15-15h121c8.271 0 15 6.729 15 15v105zm30-90.432 4.171-7.225c4.138-7.165 13.332-9.629 20.496-5.492l103.917 59.996c7.165 4.137 9.628 13.331 5.48 20.516l-17.332 30.127a14.99 14.99 0 0 0-1.152 2.002L211 360.395V59.568zm0 360.987 140.222-243.737 28.993-16.739c7.35-4.243 17.431-1.666 21.545 5.459l59.969 104.87c4.148 7.184 1.729 16.394-5.529 20.584L211 432.945v-12.39zM482 467c0 8.271-6.729 15-15 15H208.42a44.793 44.793 0 0 0 2.565-14.381L446.97 331H467c8.271 0 15 6.729 15 15v121z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "Text Virastar",
+        url: "https://toolkit.hawid.ir/virastar/",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 32 32"><path d="M27 8h-5V7a2 2 0 0 1 2-2 1 1 0 0 0 0-2 4 4 0 0 0-3 1.36A4 4 0 0 0 18 3a1 1 0 0 0 0 2 2 2 0 0 1 2 2v1H5a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h15v1a2 2 0 0 1-2 2 1 1 0 1 0 0 2 4 4 0 0 0 3-1.36A4 4 0 0 0 24 29a1 1 0 0 0 0-2 2 2 0 0 1-2-2v-1h5a3 3 0 0 0 3-3V11a3 3 0 0 0-3-3zM5 22a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h15v12zm23-1a1 1 0 0 1-1 1h-5V10h5a1 1 0 0 1 1 1z" fill="currentColor"></path><path d="M11 12H7a1 1 0 0 0 0 2h1v5a1 1 0 0 0 2 0v-5h1a1 1 0 0 0 0-2z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "Notepad",
+        url: "https://toolkit.hawid.ir/notepad/",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 32 32"><path d="M21.987 6.577H8.976a.9.9 0 0 0 0 1.8h13.012a.9.9 0 1 0-.001-1.8zM22.887 12.551a.9.9 0 0 0-.9-.9H8.976a.9.9 0 0 0 0 1.8h13.012a.9.9 0 0 0 .899-.9zM8.976 16.726a.9.9 0 0 0 0 1.8h6.554a.9.9 0 0 0 0-1.8z" fill="currentColor"></path><path d="M11.313 29.1H5.744a1.394 1.394 0 0 1-1.392-1.392V4.292c0-.768.625-1.392 1.392-1.392H25.22c.767 0 1.392.625 1.392 1.392v8.545a.9.9 0 0 0 1.8 0V4.292A3.195 3.195 0 0 0 25.221 1.1H5.744a3.196 3.196 0 0 0-3.192 3.192v23.416A3.196 3.196 0 0 0 5.744 30.9h5.569a.9.9 0 0 0 0-1.8z" fill="currentColor"></path><path d="M28.467 16.914a3.353 3 appoints 0 0-4.738 0l-8.275 8.275a1.77 1.77 0 0 0-.496.959l-.452 2.683a1.774 1.774 0 0 0 2.043 2.044l2.681-.453c.366-.061.699-.232.961-.495l8.275-8.275a3.354 3.354 0 0 0 .001-4.738zm-9.534 11.733-2.652.483.445-2.669 5.955-5.955 2.194 2.194zm8.261-8.268-1.047 1.048-2.194-2.194 1.048-1.048c.302-.302.7-.453 1.097-.453a1.55 1.55 0 0 1 1.096 2.647z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "PDF Merge",
+        url: "https://toolkit.hawid.ir/pdf/",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 682.667 682.667"><g><defs><clipPath id="a"><path d="M0 512h512V0H0Z" fill="currentColor"></path></clipPath></defs><path d="M0 0v-113.993" transform="matrix(1.33333 0 0 -1.33333 128 298.667)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path><g clip-path="url(#a)" transform="matrix(1.33333 0 0 -1.33333 0 682.667)"><path d="M0 0c0-17.767-15.033-32.169-32.799-32.169-8.811 0-31.519-.142-31.519-.142S-64.46-8.955-64.46 0c0 7.355-.08 32.169-.08 32.169h31.741C-15.033 32.169 0 17.767 0 0Z" transform="translate(160.54 255.831)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path><path d="M0 0c0-30.479-16.917-54.599-43.755-55.067-8.934-.157-32.023-.244-32.023-.244s-.144 40.069-.144 55.433c0 12.618-.08 55.189-.08 55.189h31.33C-15.234 55.311 0 30.479 0 0Z" transform="translate(300.002 232.69)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path><path d="M0 0h-45.863v-113.158" transform="translate(413.863 289.158)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path><path d="M0 0h42.22" transform="translate(368 233.65)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path><path d="M0 0v115c0 16.5 13.5 30 30 30h199.695a60 60 0 0 0 43.542-18.72l62.305-65.72A59.999 59.999 0 0 0 352 19.279V0" transform="translate(80 352)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path><path d="M0 0v-67c0-16.5-13.5-30-30-30h-292c-16.5 0-30 13.5-30 30V0" transform="translate(432 112)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path><path d="M0 0h-404c-16.5 0-30 13.5-30 30v180c0 16.5 13.5 30 30 30H0c16.5 0 30-13.5 30-30V30C30 13.5 16.5 0 0 0Z" transform="translate(458 112)" fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path></g></g></svg>`,
+        featured: false,
+      },
+      {
+        name: "PDF Compress",
+        url: "https://toolkit.hawid.ir/compress/",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5L14 4.5ZM1.6 11.85H0v3.999h.791v-1.342h.803c.287 0 .531-.057.732-.173.203-.117.358-.275.463-.474a1.42 1.42 0 0 0 .161-.677c0-.25-.053-.476-.158-.677a1.176 1.176 0 0 0-.46-.477c-.2-.12-.443-.179-.732-.179Zm.545 1.333a.795.795 0 0 1-.085.38.574.574 0 0 1-.238.241.794.794 0 0 1-.375.082H.788V12.48h.66c.218 0 .389.06.512.181.123.122.185.296.185.522Zm1.217-1.333v3.999h1.46c.401 0 .734-.08.998-.237a1.45 1.45 0 0 0 .595-.689c.13-.3.196-.662.196-1.084 0-.42-.065-.778-.196-1.075a1.426 1.426 0 0 0-.589-.68c-.264-.156-.599-.234-1.005-.234H3.362Zm.791.645h.563c.248 0 .45.05.609.152a.89.89 0 0 1 .354.454c.079.201.118.452.118.753a2.3 2.3 0 0 1-.068.592 1.14 1.14 0 0 1-.196.422.8.8 0 0 1-.334.252 1.298 1.298 0 0 1-.483.082h-.563v-2.707Zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638H7.896Z"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "Text Encryption",
+        url: "https://toolkit.hawid.ir/textencoder",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 512 512"><path d="M60 486c-22.091 0-40-17.909-40-40v-20c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM256 306c-22.091 0-40-17.909-40-40v-20c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM452 486c-22.091 0-40-17.909-40-40v-20c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM216 386h40v100M216 486h80M20 206h40v100M20 306h80M412 206h40v100M412 306h80M60 126c-22.091 0-40-17.909-40-40V66c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM452 126c-22.091 0-40-17.909-40-40V66c0-22.091 17.909-40 40-40s40 17.909 40 40v20c0 22.091-17.909 40-40 40zM216 26h40v100M216 126h80" fill="none" stroke="currentColor" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "Base64 Encoder/Decoder",
+        url: "https://toolkit.hawid.ir/base64",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 512 512"><path d="M83.33 484.135A39.512 39.512 0 0 0 111.713 496h211.031a39.736 39.736 0 0 0 28.284-11.716l77.255-77.255A39.736 39.736 0 0 0 440 378.745V192a8 8 0 0 0-8-8h-8v-24h-16v24h-16v-24a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8v24h-16v-48h-16v48h-16v-48h-16v48h-16v-48a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8v48h-16v-16h-16v16h-16v-16h-16v16h-16v-56h-16v56h-16v-24H88v24h-8a8 8 0 0 0-8 8l.004 263.852a39.205 39.205 0 0 0 11.325 28.283zM360 168h16v16h-16zm-128-24h16v40h-16zm192 56v178.745a23.845 23.845 0 0 1-7.03 16.97L344 468.688V424a24.027 24.027 0 0 1 24-24h24v-16h-24a40.045 40.045 0 0 0-40 40v55.419a24.19 24.19 0 0 1-5.255.581h-211.03a23.63 23.63 0 0 1-16.98-7.086 23.326 23.326 0 0 1-6.732-16.87l.001-.13L88 200z" fill="currentColor"></path><path d="M152 144a8 8 0 0 0 8 8h32a8 8 0 0 0 8-8V88a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8zm16-48h16v40h-16zM120 16h16v96h-16zM88 16h16v32H88zM88 64h16v80H88zM408 16h16v32h-16zM408 64h16v80h-16zM152 16h16v48h-16zM184 16h16v16h-16zM184 48h16v16h-16zM216 72h16v40h-16zM248 16h16v56h-16zM248 88h16v24h-16zM216 16h16v40h-16zM280 112a8 8 0 0 0 8 8h32a8 8 0 0 0 8-8V56a8 8 0 0 0-8-8h-32a8 8 0 0 0-8 8zm16-48h16v40h-16zM280 16h16v16h-16zM312 16h16v16h-16zM344 64h16v72h-16zM376 16h16v80h-16zM376 112h16v24h-16zM344 16h16v32h-16zM168 240h24v16h-24zM208 240h112v16H208zM336 240h48v16h-48zM128 288h48v16h-48zM192 288h128v16H192zM128 384h88v16h-88zM232 384h80v16h-80zM128 432h24v16h-24zM280 432h32v16h-32zM168 432h96v16h-96zM336 288h48v16h-48zM128 336h16v16h-16zM160 336h112v16H160zM288 336h96v16h-96z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "Time Calculation",
+        url: "https://toolkit.hawid.ir/time-calculation",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 800 800"><path d="M483.3 508.3c-6.4 0-12.8-2.4-17.7-7.3l-83.3-83.3c-4.7-4.7-7.3-11-7.3-17.7V266.7c0-13.8 11.2-25 25-25s25 11.2 25 25v123l76 76c9.8 9.8 9.8 25.6 0 35.4-4.9 4.8-11.3 7.2-17.7 7.2z" fill="currentColor"></path><path d="M400 758.3c-80.8 0-139.2 0-186.2-6.3-52.9-7.1-88.6-22.5-116-49.8-27.3-27.3-42.7-63.1-49.8-116-6.3-47-6.3-105.4-6.3-186.2s0-139.2 6.3-186.2c7.1-52.9 22.5-88.6 49.8-116s63.1-42.7 116-49.8c47-6.3 105.4-6.3 186.2-6.3s139.2 0 186.2 6.3c52.9 7.1 88.6 22.5 116 49.8 40.1 40.1 50.7 96 54.3 167.6.7 13.8-9.9 25.5-23.7 26.2s-25.5-9.9-26.2-23.7c-3.6-72.9-14.4-109.5-39.7-134.8C625.3 91.7 550 91.7 400 91.7s-225.3 0-266.8 41.5S91.7 250 91.7 400s0 225.3 41.5 266.8S250 708.3 400 708.3s225.3 0 266.8-41.5S708.3 550 708.3 400c0-13.8 11.2-25 25-25s25 11.2 25 25c0 80.8 0 139.2-6.3 186.2-7.1 52.9-22.5 88.6-49.8 116-27.3 27.3-63.1 42.7-116 49.8-47 6.3-105.4 6.3-186.2 6.3z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+      {
+        name: "Loan Calculations",
+        url: "https://toolkit.hawid.ir/loan-calculations",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 511.983 511.983"><path d="M282.895 216.928c7.262 0 13.169 4.947 13.169 11.027 0 5.522 4.478 10 10 10s10-4.478 10-10c0-13.849-9.752-25.606-23.169-29.583v-1.39c0-5.522-4.478-10-10-10s-10 4.478-10 10v1.39c-13.417 3.977-23.169 15.734-23.169 29.583 0 6.08 5.907 11.027 13.169 11.027zm-73.988-37.606c0-5.522-4.478-10-10-10h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351zm-10 76.351h-16.351v-56.351h16.351v56.351zm145.143-76.351c0-5.522-4.478-10-10-10h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351zm-10 76.351h-16.351v-56.351h16.351v56.351zm-85.025 144.805c-5.522 0-10 4.478-10 10v26.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-26.351c0-5.522-4.478-10-10-10h-36.351zm73.988-37.606c0-5.522-4.478-10-10-10h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351zm-10 76.351h-16.351v-56.351h16.351v56.351zm-145.143 0h-16.351v-56.351h16.351v56.351zm-73.988-37.606c0-5.522-4.478-10-10-10h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351zm-10 76.351h-16.351v-56.351h16.351v56.351zm-63.988-198.955c0-5.522-4.478-10-10-10H45.522c-5.522 0-10 4.478-10 10v36.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-36.351zm-10 26.351H55.522v-16.351h16.351v16.351zm337.606 0h-16.351v-16.351h16.351v16.351zm-73.988-198.955c0-5.522-4.478-10-10-10h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351zm-10 76.351h-16.351v-56.351h16.351v56.351zm73.988 0h-16.351v-56.351h16.351v56.351zm36.351-86.351h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351c0-5.522-4.478-10-10-10zm-10 76.351h-16.351v-56.351h16.351v56.351zm-221.494-76.351c0-5.522-4.478-10-10-10h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351zm-10 76.351h-16.351v-56.351h16.351v56.351zm-73.988-76.351c0-5.522-4.478-10-10-10h-36.351c-5.522 0-10 4.478-10 10v86.351c0 5.522 4.478 10 10 10h36.351c5.522 0 10-4.478 10-10v-86.351zm-10 76.351h-16.351v-56.351h16.351v56.351z" fill="currentColor"></path></svg>`,
+        featured: false,
+      },
+    ];
+
+    function ToolCard({ name, url, icon, featured }) {
+      return (
+        <a
+          href={url}
+          className={`block bg-white border border-gray-100 rounded-lg p-6 text-center transition-all duration-300 card h-full flex flex-col justify-center ${featured ? 'featured' : ''}`}
+        >
+          <span
+            className="icon-circle w-20 h-20 bg-blue-100 text-blue-600 mb-6 mx-auto"
+            dangerouslySetInnerHTML={{ __html: icon }}
+          />
+          <h3 className="text-xl font-medium text-gray-800 truncate">{name}</h3>
+        </a>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="flex flex-col min-h-screen">
+          <header className="bg-white shadow-lg py-6">
+            <div className="container mx-auto px-4 flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-blue-600">Hawid.ir Toolkit</h1>
+              <nav>
+                <a href="https://hawid.ir" className="text-gray-600 hover:text-blue-600 font-medium text-lg">Home</a>
+              </nav>
+            </div>
+          </header>
+
+          <main className="flex-grow py-12">
+            <div className="container mx-auto px-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div className="col-span-full mb-6">
+                  <span className="inline-block bg-blue-100 text-blue-600 text-sm font-medium uppercase tracking-wider px-4 py-2 rounded-full">Toolkit</span>
+                </div>
+                {tools.map((tool, index) => (
+                  <div key={index} className="min-h-[180px]">
+                    <ToolCard
+                      name={tool.name}
+                      url={tool.url}
+                      icon={tool.icon}
+                      featured={tool.featured}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </main>
+
+          <footer className="bg-gray-800 text-white py-6">
+            <div className="container mx-auto px-4 text-center">
+              <p>&copy; 2025 <a href="https://hawid.ir" className="underline hover:text-blue-400">Hawid.ir</a>. All rights reserved.</p>
+            </div>
+          </footer>
         </div>
-      </div>
-    </section>
-    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93769a61cbdd4548',t:'MTc0NTg0Mzc2My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-  </body>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
 </html>
